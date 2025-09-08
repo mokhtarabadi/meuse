@@ -29,6 +29,20 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Cleanup function
+cleanup_on_error() {
+    if [[ $? -ne 0 ]]; then
+        print_error "Installation failed! Cleaning up..."
+        if [[ -d "$PROJECT_DIR" ]]; then
+            cd "$PROJECT_DIR" 2>/dev/null && docker compose down -v 2>/dev/null || true
+        fi
+        print_info "You can restart the installation after fixing any issues."
+    fi
+}
+
+# Set trap to cleanup on error
+trap cleanup_on_error EXIT
+
 # Banner
 echo -e "${GREEN}"
 cat << "EOF"
@@ -71,6 +85,12 @@ print_step "Configuration Setup"
 read -p "Enter your domain (e.g., registry.yourdomain.com): " DOMAIN
 if [[ -z "$DOMAIN" ]]; then
     print_error "Domain is required!"
+    exit 1
+fi
+
+# Validate domain format (basic validation)
+if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9.-]+$ ]]; then
+    print_error "Invalid domain format. Use alphanumeric characters, dots, and hyphens only."
     exit 1
 fi
 
@@ -315,7 +335,7 @@ if [[ "$USE_LOCAL_GIT" == "true" ]]; then
         # Create the crate index structure
         mkdir -p 1 2 3
         
-        # Create index config
+        # Create index config with HTTP protocol (SSL can be added later with reverse proxy)
         cat > config.json << EOF
 {
     "dl": "http://${DOMAIN}:8080/api/v1/crates",
@@ -402,37 +422,95 @@ fi
 print_step "Creating admin user..."
 
 # Wait a bit more for Meuse to be fully ready
-sleep 15
+print_info "Waiting for services to fully initialize..."
+sleep 30
 
-# Generate password hash
+# Check if services are actually healthy
+print_info "Verifying service health..."
+for i in {1..10}; do
+    if curl -f -s http://localhost:8080/healthz > /dev/null 2>&1; then
+        print_info "Services are healthy!"
+        break
+    else
+        if [ $i -eq 10 ]; then
+            print_error "Services failed to become healthy after 100 seconds"
+            print_info "Check logs with: docker compose logs"
+            exit 1
+        fi
+        print_info "Waiting for services... attempt $i/10"
+        sleep 10
+    fi
+done
+
+# Generate password hash with retry logic
 print_info "Generating password hash..."
-PASSWORD_HASH=$(docker compose exec -T meuse java -jar /app/meuse.jar password "$ADMIN_PASSWORD" 2>/dev/null | grep '$2a$' | tail -1)
+for i in {1..3}; do
+    PASSWORD_HASH=$(docker compose exec -T meuse java -jar /app/meuse.jar password "$ADMIN_PASSWORD" 2>/dev/null | grep '$2a$' | tail -1)
+    
+    if [[ -n "$PASSWORD_HASH" ]]; then
+        print_info "Password hash generated successfully!"
+        break
+    else
+        if [ $i -eq 3 ]; then
+            print_error "Failed to generate password hash after 3 attempts"
+            print_info "You can create the admin user manually after setup:"
+            print_info "1. Generate hash: docker compose exec meuse java -jar /app/meuse.jar password YOUR_PASSWORD"
+            print_info "2. Insert user: docker compose exec postgres psql -U meuse -d meuse"
+            print_warning "Continuing with setup..."
+            PASSWORD_HASH=""
+            break
+        fi
+        print_warning "Password hash generation failed, retrying... ($i/3)"
+        sleep 5
+    fi
+done
 
-if [[ -z "$PASSWORD_HASH" ]]; then
-    print_error "Failed to generate password hash"
-    exit 1
-fi
-
-# Create admin user in database
-print_info "Creating admin user in database..."
-docker compose exec -T postgres psql -U meuse -d meuse << EOF
+# Create admin user in database (only if hash was generated)
+if [[ -n "$PASSWORD_HASH" ]]; then
+    print_info "Creating admin user in database..."
+    if docker compose exec -T postgres psql -U meuse -d meuse << EOF
 INSERT INTO users(id, name, password, description, active, role_id) 
 VALUES ('f3e6888e-97f9-11e9-ae4e-ef296f05cd17', 'admin', '$PASSWORD_HASH', 'Administrator user', true, '867428a0-69ba-11e9-a674-9f6c32022150')
 ON CONFLICT (id) DO NOTHING;
 EOF
+    then
+        print_info "Admin user created successfully!"
+    else
+        print_error "Failed to create admin user in database"
+    fi
+fi
 
-# Wait for API to be ready and create token
-print_info "Creating API token..."
-sleep 5
+# Wait for API to be ready and create token (only if user was created)
+if [[ -n "$PASSWORD_HASH" ]]; then
+    print_info "Creating API token..."
+    sleep 5
 
-TOKEN=$(curl -s --max-time 10 --header "Content-Type: application/json" --request POST \
-    --data "{\"name\":\"admin_token\",\"validity\":365,\"user\":\"admin\",\"password\":\"$ADMIN_PASSWORD\"}" \
-    http://localhost:8080/api/v1/meuse/token | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
-
-if [[ -n "$TOKEN" ]]; then
-    print_info "API token created successfully!"
-else
-    print_warning "Could not create API token automatically. You can create it manually after setup."
+    # Try to create token with retry logic and better error handling
+    TOKEN=""
+    for i in {1..3}; do
+        RESPONSE=$(curl -s --max-time 15 --header "Content-Type: application/json" --request POST \
+            --data "{\"name\":\"admin_token_$(date +%s)\",\"validity\":365,\"user\":\"admin\",\"password\":\"$ADMIN_PASSWORD\"}" \
+            http://localhost:8080/api/v1/meuse/token 2>/dev/null)
+        
+        if [[ $? -eq 0 ]] && echo "$RESPONSE" | grep -q '"token":'; then
+            TOKEN=$(echo "$RESPONSE" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+            if [[ -n "$TOKEN" ]]; then
+                print_info "API token created successfully!"
+                break
+            fi
+        fi
+        
+        if [ $i -eq 3 ]; then
+            print_warning "Could not create API token automatically after 3 attempts."
+            print_info "You can create it manually with:"
+            print_info "curl --header \"Content-Type: application/json\" --request POST \\"
+            print_info "  --data '{\"name\":\"my_token\",\"validity\":365,\"user\":\"admin\",\"password\":\"$ADMIN_PASSWORD\"}' \\"
+            print_info "  http://localhost:8080/api/v1/meuse/token"
+        else
+            print_warning "Token creation failed, retrying... ($i/3)"
+            sleep 5
+        fi
+    done
 fi
 
 check_health() {
