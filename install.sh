@@ -139,8 +139,8 @@ services:
     volumes:
       - ./config:/app/config:ro
       - meuse_crates:/app/crates
-      - ./index:/app/index
-      - ./logs:/app/logs
+      - meuse_index:/app/index
+      - meuse_logs:/app/logs
     ports:
       - "8855:8855"
     networks:
@@ -160,7 +160,7 @@ services:
     container_name: meuse-nginx
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./logs/nginx:/var/log/nginx
+      - meuse_logs:/var/log/nginx
     ports:
       - "80:80"
       - "443:443"
@@ -178,6 +178,8 @@ services:
 volumes:
   postgres_data:
   meuse_crates:
+  meuse_index:
+  meuse_logs:
 
 networks:
   meuse_network:
