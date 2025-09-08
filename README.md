@@ -8,6 +8,28 @@ You can use Meuse to store your private crates, configure it to mirror crates.io
 
 Documentation is available at https://meuse.mcorbin.fr/
 
+## 🚀 Quick Docker Setup
+
+Deploy your private Rust registry with SSL in 5 minutes!
+
+### One-Command Setup
+
+```bash
+curl -sSL https://raw.githubusercontent.com/mcorbin/meuse/master/install.sh | bash
+```
+
+### Manual Setup
+
+```bash
+git clone https://github.com/mcorbin/meuse.git
+cd meuse
+cp .env.example .env
+# Edit .env with your domain and settings
+docker compose up -d
+```
+
+📚 **Complete Setup Guide:** [QUICK_START.md](QUICK_START.md)
+
 ## Features
 
 - [x] Complete implementation of the alternative registries RFC (including search).
@@ -20,6 +42,12 @@ Documentation is available at https://meuse.mcorbin.fr/
 - [x] Security: HTTPS support, TLS support for the PostgreSQL client.
 - [x] Monitoring: Meuse exposes a Prometheus endpoint with various metrics (HTTP server, database pool, JVM metrics...).
 - [x] Small frontend to explore crates.
+
+## Documentation
+
+- 📖 **Quick Start:** [QUICK_START.md](QUICK_START.md) - 5-minute Docker setup with SSL
+- 📋 **Full Guide:** [DOCKER_SETUP.md](DOCKER_SETUP.md) - Complete deployment documentation
+- 🌐 **Official Docs:** https://meuse.mcorbin.fr/
 
 ## Plan
 

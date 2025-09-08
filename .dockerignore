@@ -1,0 +1,55 @@
+# Git
+.git/
+.gitignore
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+
+# Documentation
+*.md
+!README.md
+
+# Docker files (already in context)
+docker-compose*.yml
+Dockerfile.*
+
+# Node modules (if any)
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+target/
+*.jar
+
+# Local development files
+dev/
+test/
+
+# Config backups
+*.bak
+
+# Nginx logs directory
+logs/nginx/
+
+# Local data directories
+data/
