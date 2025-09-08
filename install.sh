@@ -194,7 +194,7 @@ elif [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
 EOF
 else
   cat >> docker-compose.yml << 'EOF'
-      - ./index:/app/index:ro
+      - ./index:/app/index
 EOF
 fi
 
@@ -222,7 +222,7 @@ EOF
 
 if [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
   cat >> docker-compose.yml << 'EOF'
-      - ./git-repos:/app/git-repos:ro
+      - ./git-repos:/app/git-repos
 EOF
 fi
 
@@ -592,7 +592,7 @@ for i in {1..3}; do
     echo "$HASH_OUTPUT" | sed 's/'"$ADMIN_PASSWORD"'/[REDACTED]/g'
     
     # Extract just the hash
-    PASSWORD_HASH=$(echo "$HASH_OUTPUT" | grep '$2a$' | tail -1)
+    PASSWORD_HASH=$(echo "$HASH_OUTPUT" | grep '\$2a\$' | tail -1)
     print_info "Debug: Extracted hash: ${PASSWORD_HASH:0:20}..."
     
     if [[ -n "$PASSWORD_HASH" ]]; then
