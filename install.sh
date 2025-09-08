@@ -238,11 +238,16 @@ EOF
 # Create directories
 mkdir -p config logs/nginx
 
+# Generate secure passwords BEFORE creating config
+print_step "Generating secure passwords..."
+POSTGRES_PASS=$(openssl rand -base64 32)
+FRONTEND_SECRET=$(openssl rand -hex 32)
+
 # Create configuration file
 cat > config/config.yaml << EOF
 database:
   user: "meuse"
-  password: !secret "${POSTGRES_PASSWORD}"
+  password: !secret "${POSTGRES_PASS}"
   host: "postgres"
   port: 5432
   name: "meuse"
@@ -284,21 +289,12 @@ frontend:
   public: true
 EOF
 
-# Generate secure passwords
-print_step "Generating secure passwords..."
-POSTGRES_PASS=$(openssl rand -base64 32)
-FRONTEND_SECRET=$(openssl rand -hex 32)
-
 # Create .env file
 cat > .env << EOF
 POSTGRES_PASSWORD=${POSTGRES_PASS}
 MEUSE_FRONTEND_SECRET=${FRONTEND_SECRET}
 DOMAIN=${DOMAIN}
 EOF
-
-# Update config with actual password
-export POSTGRES_PASSWORD="$POSTGRES_PASS"
-envsubst < config/config.yaml > config/config.yaml.tmp && mv config/config.yaml.tmp config/config.yaml
 
 print_info "Configuration files created!"
 
