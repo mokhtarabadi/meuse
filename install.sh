@@ -222,7 +222,7 @@ EOF
 
 if [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
   cat >> docker-compose.yml << 'EOF'
-      - fcgiwrap_socket:/var/run
+      - ./git-repos:/app/git-repos:ro
 EOF
 fi
 
@@ -233,15 +233,6 @@ cat >> docker-compose.yml << 'EOF'
       - meuse_network
     depends_on:
       - meuse
-EOF
-
-if [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
-  cat >> docker-compose.yml << 'EOF'
-      - fcgiwrap
-EOF
-fi
-
-cat >> docker-compose.yml << 'EOF'
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost/healthz" ]
@@ -249,38 +240,10 @@ cat >> docker-compose.yml << 'EOF'
       timeout: 10s
       retries: 5
 
-EOF
-
-if [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
-  cat >> docker-compose.yml << 'EOF'
-  fcgiwrap:
-    image: alpine:latest
-    container_name: meuse-fcgiwrap
-    command: sh -c "apk add --no-cache fcgiwrap git && fcgiwrap -s unix:/var/run/fcgiwrap.socket -f"
-    volumes:
-      - fcgiwrap_socket:/var/run
-      - ./git-repos:/app/git-repos
-    networks:
-      - meuse_network
-    restart: unless-stopped
-
-EOF
-fi
-
-cat >> docker-compose.yml << 'EOF'
 volumes:
   postgres_data:
   meuse_crates:
   meuse_logs:
-EOF
-
-if [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
-  cat >> docker-compose.yml << 'EOF'
-  fcgiwrap_socket:
-EOF
-fi
-
-cat >> docker-compose.yml << 'EOF'
 
 networks:
   meuse_network:
@@ -311,18 +274,24 @@ http {
             proxy_set_header X-Forwarded-Proto $scheme;
         }
         
-        # Git HTTP backend for private repository access
-        location ~ /git(/.*) {
-            fastcgi_pass  unix:/var/run/fcgiwrap.socket;
-            include       fastcgi_params;
-            fastcgi_param SCRIPT_FILENAME /usr/lib/git-core/git-http-backend;
-            fastcgi_param GIT_HTTP_EXPORT_ALL "";
-            fastcgi_param GIT_PROJECT_ROOT /app/git-repos;
-            fastcgi_param PATH_INFO $1;
-            fastcgi_param REQUEST_METHOD $request_method;
-            fastcgi_param QUERY_STRING $query_string;
-            fastcgi_param CONTENT_TYPE $content_type;
-            fastcgi_param CONTENT_LENGTH $content_length;
+        # Serve Git index files statically for HTTPS access
+        location ~ ^/index/(.*)$ {
+            alias /app/git-repos/index.git/$1;
+            add_header Access-Control-Allow-Origin "*";
+            add_header Access-Control-Allow-Methods "GET, HEAD, OPTIONS";
+            add_header Content-Type "text/plain" always;
+        }
+        
+        # Serve config.json for sparse protocol compatibility
+        location = /config.json {
+            alias /app/git-repos/index.git/config.json;
+            add_header Content-Type "application/json";
+        }
+        
+        # Git info/refs endpoint for compatibility
+        location ~ ^/git/(.*)$ {
+            alias /app/git-repos/$1;
+            add_header Content-Type "text/plain";
         }
     }
 }
