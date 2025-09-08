@@ -19,7 +19,14 @@ This setup uses the pre-built Docker image from Docker Hub:
 ```bash
 # Download and run the automated installer
 curl -sSL https://raw.githubusercontent.com/mokhtarabadi/meuse/master/install.sh | bash
+# Choose Option 3 for fully private self-hosted Git repository
 ```
+
+**🔒 Deployment Options:**
+
+- **Option 1:** Local Git (limited to local machine)
+- **Option 2:** GitHub fork (⚠️ metadata becomes public)
+- **Option 3:** Self-hosted private Git (✅ **recommended** - fully private)
 
 **Don't trust random curl commands?** Follow the manual steps below! 👇
 
@@ -56,10 +63,11 @@ nano .env  # Change DOMAIN=localhost
 
 ### 3. Setup Git Index
 
-**Two installation options:**
+**Three installation options:**
 
 - **Option 1:** Local Git repository (recommended, no external dependencies)
 - **Option 2:** GitHub fork of crates.io-index (traditional method)
+- **Option 3:** Self-hosted private Git repository (full control)
 
 For **Option 1:**
 
@@ -95,6 +103,25 @@ git commit -m "Configure for Meuse registry"
 git push origin master
 
 cd ..
+```
+
+For **Option 3:**
+
+```bash
+# Initialize self-hosted private Git repository
+mkdir -p ./private-index
+cd ./private-index
+git init --bare
+cd ../
+
+# Configure the index for your domain
+cat > config.json << EOF
+{
+    "dl": "http://localhost:8080/api/v1/crates",
+    "api": "http://localhost:8080",
+    "allowed-registries": []
+}
+EOF
 ```
 
 ### 4. Update Meuse Config

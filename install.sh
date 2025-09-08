@@ -218,12 +218,30 @@ cat >> docker-compose.yml << 'EOF'
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - meuse_logs:/var/log/nginx
+EOF
+
+if [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
+  cat >> docker-compose.yml << 'EOF'
+      - fcgiwrap_socket:/var/run
+EOF
+fi
+
+cat >> docker-compose.yml << 'EOF'
     ports:
       - "8080:80"
     networks:
       - meuse_network
     depends_on:
       - meuse
+EOF
+
+if [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
+  cat >> docker-compose.yml << 'EOF'
+      - fcgiwrap
+EOF
+fi
+
+cat >> docker-compose.yml << 'EOF'
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost/healthz" ]
@@ -589,7 +607,7 @@ done
 # Generate password hash with retry logic
 print_info "Generating password hash..."
 for i in {1..3}; do
-    PASSWORD_HASH=$(docker compose exec -T meuse java -jar /app/meuse.jar password "$ADMIN_PASSWORD" 2>/dev/null | grep '$2a$' | tail -1)
+    PASSWORD_HASH=$(docker compose exec -T meuse java -jar /app/meuse.jar password "$ADMIN_PASSWORD" | grep '$2a$' | tail -1)
     
     if [[ -n "$PASSWORD_HASH" ]]; then
         print_info "Password hash generated successfully!"
@@ -605,7 +623,8 @@ for i in {1..3}; do
             break
         fi
         print_warning "Password hash generation failed, retrying... ($i/3)"
-        sleep 5
+        print_info "Waiting for Meuse service to be fully ready..."
+        sleep 10
     fi
 done
 

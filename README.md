@@ -28,16 +28,26 @@ docker pull mokhtarabadi/meuse:1.3.0
 
 Deploy your private Rust registry in 5 minutes!
 
-### 🚀 NEW: Local Git Support
+### 🆕 NEW: Three Deployment Options
 
-- **Option 1:** Completely local setup (no external dependencies)
-- **Option 2:** GitHub fork method (traditional)
-- **Port:** Runs on port 8080 (secure, no root privileges needed)
+- **Option 1:** Local Git repository (limited to local machine)
+- **Option 2:** GitHub fork method (⚠️ metadata becomes public)
+- **Option 3:** Self-hosted private Git repository (✅ **recommended** - fully private)
+
+### 🔒 **Fully Private Option** (Recommended)
+
+Our new **self-hosted private Git** option keeps all your crate metadata completely private on your server:
+
+✅ **No external dependencies** - everything runs on your server  
+✅ **Completely private** - metadata never leaves your infrastructure  
+✅ **Standard Git protocol** - works with all Cargo clients  
+✅ **Automatic setup** - one script configures everything
 
 ### One-Command Setup
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/mokhtarabadi/meuse/master/install.sh | bash
+# Choose Option 3 for fully private setup
 ```
 
 ### Manual Setup
