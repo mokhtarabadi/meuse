@@ -575,8 +575,25 @@ done
 
 # Generate password hash with retry logic
 print_info "Generating password hash..."
+print_info "Debug: Checking Meuse service readiness..."
+
+# First, let's debug the service status
+docker compose logs meuse --tail 20
+print_info "Debug: Meuse container status:"
+docker compose ps meuse
+
 for i in {1..3}; do
-    PASSWORD_HASH=$(docker compose exec -T meuse java -jar /app/meuse.jar password "$ADMIN_PASSWORD" | grep '$2a$' | tail -1)
+    print_info "Debug: Password hash attempt $i/3"
+    print_info "Debug: Running command: docker compose exec -T meuse java -jar /app/meuse.jar password [REDACTED]"
+    
+    # Capture full output for debugging
+    HASH_OUTPUT=$(docker compose exec -T meuse java -jar /app/meuse.jar password "$ADMIN_PASSWORD" 2>&1)
+    print_info "Debug: Full output received:"
+    echo "$HASH_OUTPUT" | sed 's/'"$ADMIN_PASSWORD"'/[REDACTED]/g'
+    
+    # Extract just the hash
+    PASSWORD_HASH=$(echo "$HASH_OUTPUT" | grep '$2a$' | tail -1)
+    print_info "Debug: Extracted hash: ${PASSWORD_HASH:0:20}..."
     
     if [[ -n "$PASSWORD_HASH" ]]; then
         print_info "Password hash generated successfully!"
@@ -584,6 +601,11 @@ for i in {1..3}; do
     else
         if [ $i -eq 3 ]; then
             print_error "Failed to generate password hash after 3 attempts"
+            print_error "Debug: Final attempt failed with no hash extracted"
+            print_info "Debug: Let's check what's in the Meuse container:"
+            docker compose exec meuse ls -la /app/
+            print_info "Debug: Java version in container:"
+            docker compose exec meuse java -version
             print_info "You can create the admin user manually after setup:"
             print_info "1. Generate hash: docker compose exec meuse java -jar /app/meuse.jar password YOUR_PASSWORD"
             print_info "2. Insert user: docker compose exec postgres psql -U meuse -d meuse"
@@ -592,7 +614,9 @@ for i in {1..3}; do
             break
         fi
         print_warning "Password hash generation failed, retrying... ($i/3)"
-        print_info "Waiting for Meuse service to be fully ready..."
+        print_info "Debug: Waiting for Meuse service to be fully ready..."
+        print_info "Debug: Checking if Meuse API is responding:"
+        curl -f -s http://localhost:8080/healthz || print_info "Debug: Health check failed"
         sleep 10
     fi
 done
