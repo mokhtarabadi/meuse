@@ -8,11 +8,18 @@ Deploy your private Rust crate registry behind Cloudflare SSL in just 5 minutes!
 - Domain name (can be subdomain like `registry.yoursite.com`)
 - Cloudflare account (free tier works)
 
+## 🐳 Docker Image
+
+This setup uses the pre-built Docker image from Docker Hub:
+
+- **Image:** `mokhtarabadi/meuse:latest`
+- **Registry:** https://hub.docker.com/r/mokhtarabadi/meuse
+
 ## 🎯 One-Command Setup
 
 ```bash
 # Download and run the automated installer
-curl -sSL https://raw.githubusercontent.com/mcorbin/meuse/master/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/mokhtarabadi/meuse/master/install.sh | bash
 ```
 
 **Don't trust random curl commands?** Follow the manual steps below! 👇
@@ -26,10 +33,10 @@ curl -sSL https://raw.githubusercontent.com/mcorbin/meuse/master/install.sh | ba
 mkdir meuse-registry && cd meuse-registry
 
 # Download all required files
-curl -O https://raw.githubusercontent.com/mcorbin/meuse/master/docker-compose.yml
-curl -O https://raw.githubusercontent.com/mcorbin/meuse/master/nginx.conf  
-curl -O https://raw.githubusercontent.com/mcorbin/meuse/master/.env.example
-mkdir config && curl -o config/config.yaml https://raw.githubusercontent.com/mcorbin/meuse/master/config/config.yaml
+curl -O https://raw.githubusercontent.com/mokhtarabadi/meuse/master/docker-compose.yml
+curl -O https://raw.githubusercontent.com/mokhtarabadi/meuse/master/nginx.conf  
+curl -O https://raw.githubusercontent.com/mokhtarabadi/meuse/master/.env.example
+mkdir config && curl -o config/config.yaml https://raw.githubusercontent.com/mokhtarabadi/meuse/master/config/config.yaml
 ```
 
 ### 2. Configure Environment
@@ -233,7 +240,7 @@ docker compose exec meuse ls -la /app/index
 **Need help?**
 
 - Check full documentation: `DOCKER_SETUP.md`
-- Open issue: https://github.com/mcorbin/meuse/issues
+- Open issue: https://github.com/mokhtarabadi/meuse/issues
 
 ---
 

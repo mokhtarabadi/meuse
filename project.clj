@@ -2,7 +2,7 @@
 
 (defproject meuse "1.3.0"
   :description "A free private Rust registry"
-  :url "https://github.com/mcorbin/meuse"
+  :url "https://github.com/mokhtarabadi/meuse"
   :license {:name "Eclipse Public License 2.0"}
   :maintainer {:name "Mathieu Corbin"
                :website "https://meuse.mcorbin.fr"}

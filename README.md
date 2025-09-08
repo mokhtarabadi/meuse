@@ -6,7 +6,22 @@ It implements the [alternative registries](https://github.com/rust-lang/rfcs/blo
 
 You can use Meuse to store your private crates, configure it to mirror crates.io...
 
-Documentation is available at https://meuse.mcorbin.fr/
+Documentation is available at https://meuse.mokhtarabadi.fr/
+
+## 🐳 Docker Image
+
+The Meuse Docker image is available on Docker Hub:
+
+- **Latest:** `mokhtarabadi/meuse:latest`
+- **Versioned:** `mokhtarabadi/meuse:1.3.0`
+
+```bash
+# Pull the latest image
+docker pull mokhtarabadi/meuse:latest
+
+# Or pull a specific version
+docker pull mokhtarabadi/meuse:1.3.0
+```
 
 ## 🚀 Quick Docker Setup
 
@@ -15,13 +30,13 @@ Deploy your private Rust registry with SSL in 5 minutes!
 ### One-Command Setup
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/mcorbin/meuse/master/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/mokhtarabadi/meuse/master/install.sh | bash
 ```
 
 ### Manual Setup
 
 ```bash
-git clone https://github.com/mcorbin/meuse.git
+git clone https://github.com/mokhtarabadi/meuse.git
 cd meuse
 cp .env.example .env
 # Edit .env with your domain and settings
@@ -47,8 +62,8 @@ docker compose up -d
 
 - 📖 **Quick Start:** [QUICK_START.md](QUICK_START.md) - 5-minute Docker setup with SSL
 - 📋 **Full Guide:** [DOCKER_SETUP.md](DOCKER_SETUP.md) - Complete deployment documentation
-- 🌐 **Official Docs:** https://meuse.mcorbin.fr/
+- 🌐 **Official Docs:** https://meuse.mokhtarabadi.fr/
 
 ## Plan
 
-Take a look at https://meuse.mcorbin.fr/roadmap/.
+Take a look at https://meuse.mokhtarabadi.fr/roadmap/.

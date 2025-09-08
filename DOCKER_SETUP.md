@@ -3,6 +3,22 @@
 This guide covers deploying Meuse (a private Rust registry) using Docker Compose with Nginx reverse proxy and Cloudflare
 SSL termination.
 
+## 🐳 Docker Image
+
+This deployment uses the official Meuse Docker image:
+
+- **Docker Hub:** https://hub.docker.com/r/mokhtarabadi/meuse
+- **Latest:** `mokhtarabadi/meuse:latest`
+- **Version 1.3.0:** `mokhtarabadi/meuse:1.3.0`
+
+The image includes:
+
+- ✅ Meuse application (Rust registry server)
+- ✅ Java 17 runtime environment
+- ✅ Git for index management
+- ✅ Health check endpoints
+- ✅ Optimized for production use
+
 ## Table of Contents
 
 1. [Prerequisites](#prerequisites)
@@ -29,7 +45,7 @@ SSL termination.
 ### 1. Clone and Prepare the Repository
 
 ```bash
-git clone https://github.com/mcorbin/meuse.git
+git clone https://github.com/mokhtarabadi/meuse.git
 cd meuse
 ```
 
@@ -481,4 +497,4 @@ tar -xzf index-backup.tar.gz -C data/
 - [ ] Security hardening applied
 
 For additional help, consult the [official Meuse documentation](https://meuse.mcorbin.fr/) or open an issue on
-the [GitHub repository](https://github.com/mcorbin/meuse).
+the [GitHub repository](https://github.com/mokhtarabadi/meuse).

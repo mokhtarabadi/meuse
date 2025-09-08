@@ -132,7 +132,7 @@ services:
       retries: 5
 
   meuse:
-    image: mcorbin/meuse:latest
+    image: mokhtarabadi/meuse:latest
     container_name: meuse-app
     environment:
       - MEUSE_CONFIGURATION=/app/config/config.yaml

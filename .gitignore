@@ -48,3 +48,4 @@ config/config.yaml
 
 # Local temporary registry data
 temp-registry/
+local-crate-index/
