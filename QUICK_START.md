@@ -1,12 +1,11 @@
 # 🚀 Meuse Registry Quick Start (5-Minute Setup)
 
-Deploy your private Rust crate registry behind Cloudflare SSL in just 5 minutes!
+Deploy your private Rust crate registry behind a secure connection in just 5 minutes!
 
 ## ⚡ Prerequisites
 
 - Server with Docker installed
-- Domain name (can be subdomain like `registry.yoursite.com`)
-- Cloudflare account (free tier works)
+- Domain name (can be subdomain like `registry.yoursite.com`) or use `localhost` for testing
 
 ## 🐳 Docker Image
 
@@ -48,13 +47,31 @@ cp .env.example .env
 # Generate secure passwords (Linux/Mac)
 sed -i "s/POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -base64 32)/" .env
 sed -i "s/MEUSE_FRONTEND_SECRET=.*/MEUSE_FRONTEND_SECRET=$(openssl rand -hex 32)/" .env  
-sed -i "s/DOMAIN=.*/DOMAIN=registry.yourdomain.com/" .env
+sed -i "s/DOMAIN=.*/DOMAIN=localhost/" .env
+sed -i "s/PORT=.*/PORT=8080/" .env
 
 # Edit with your domain
-nano .env  # Change DOMAIN=registry.yourdomain.com
+nano .env  # Change DOMAIN=localhost
 ```
 
 ### 3. Setup Git Index
+
+**Two installation options:**
+
+- **Option 1:** Local Git repository (recommended, no external dependencies)
+- **Option 2:** GitHub fork of crates.io-index (traditional method)
+
+For **Option 1:**
+
+```bash
+# Initialize local Git repository
+mkdir -p ./index
+cd ./index
+git init --bare
+cd ../
+```
+
+For **Option 2:**
 
 ```bash
 # Fork https://github.com/rust-lang/crates.io-index on GitHub first!
@@ -66,8 +83,8 @@ cd temp-index
 # Configure the index for your domain
 cat > config.json << EOF
 {
-    "dl": "https://registry.yourdomain.com/api/v1/crates",
-    "api": "https://registry.yourdomain.com",
+    "dl": "http://localhost:8080/api/v1/crates",
+    "api": "http://localhost:8080",
     "allowed-registries": ["https://github.com/rust-lang/crates.io-index"]
 }
 EOF
@@ -83,7 +100,7 @@ cd ..
 ### 4. Update Meuse Config
 
 ```bash
-# Edit config/config.yaml and update YOUR_USERNAME
+# Edit config/config.yaml and update YOUR_USERNAME (only for Option 2)
 sed -i 's/YOUR_USERNAME/your-actual-github-username/' config/config.yaml
 ```
 
@@ -110,7 +127,7 @@ PASSWORD_HASH=$(docker compose exec meuse java -jar /app/meuse.jar password your
 docker compose exec postgres psql -U meuse -d meuse -c "INSERT INTO users(id, name, password, description, active, role_id) VALUES ('f3e6888e-97f9-11e9-ae4e-ef296f05cd17', 'admin', '$PASSWORD_HASH', 'Administrator user', true, '867428a0-69ba-11e9-a674-9f6c32022150');"
 
 # Create API token  
-TOKEN=$(curl -s --header "Content-Type: application/json" --request POST --data '{"name":"admin_token","validity":365,"user":"admin","password":"your_admin_password"}' http://localhost/api/v1/meuse/token | jq -r '.token')
+TOKEN=$(curl -s --header "Content-Type: application/json" --request POST --data '{"name":"admin_token","validity":365,"user":"admin","password":"your_admin_password"}' http://localhost:8080/api/v1/meuse/token | jq -r '.token')
 
 echo "🎉 Your API token: $TOKEN"
 echo "Save this token - you'll need it for Cargo!"
@@ -144,7 +161,7 @@ SSL/TLS → Edge Certificates → Always Use HTTPS: ON
 
 ```bash
 # Should show "Meuse is running."
-curl https://registry.yourdomain.com/healthz
+curl http://localhost:8080/healthz
 ```
 
 ## 🦀 Configure Cargo
@@ -156,14 +173,14 @@ curl https://registry.yourdomain.com/healthz
 mkdir -p ~/.cargo
 cat >> ~/.cargo/config.toml << EOF
 [registries.myregistry]
-index = "https://github.com/YOUR_USERNAME/crates.io-index"
+index = "http://localhost:8080"
 
 # Optional: Use as default registry
 [source.crates-io]
 replace-with = "myregistry"
 
 [source.myregistry]  
-registry = "https://github.com/YOUR_USERNAME/crates.io-index"
+registry = "http://localhost:8080"
 EOF
 ```
 
@@ -213,7 +230,7 @@ docker compose restart
 docker compose down
 
 # List crates via API
-curl -H "Authorization: YOUR_TOKEN" https://registry.yourdomain.com/api/v1/meuse/crate
+curl -H "Authorization: YOUR_TOKEN" http://localhost:8080/api/v1/meuse/crate
 ```
 
 ## 🆘 Troubleshooting
@@ -231,12 +248,6 @@ docker compose logs meuse
 docker compose exec meuse ls -la /app/index
 ```
 
-**SSL not working?**
-
-- Wait 10-15 minutes for Cloudflare SSL certificates
-- Ensure DNS is proxied (orange cloud)
-- Check SSL mode is "Full" not "Full (strict)"
-
 **Need help?**
 
 - Check full documentation: `DOCKER_SETUP.md`
@@ -244,6 +255,6 @@ docker compose exec meuse ls -la /app/index
 
 ---
 
-**🎊 Congratulations!** You now have a production-ready private Rust registry with SSL!
+**🎊 Congratulations!** You now have a production-ready private Rust registry!
 
 **Total setup time:** ~5 minutes (plus DNS propagation)

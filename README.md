@@ -4,7 +4,8 @@ A free crate registry for the Rust programming language.
 
 It implements the [alternative registries](https://github.com/rust-lang/rfcs/blob/master/text/2141-alternative-registries.md) RFC and offers also various features (cf the `Features` section).
 
-You can use Meuse to store your private crates, configure it to mirror crates.io...
+You can use Meuse to store your private crates, configure it to mirror crates.io, and now with local Git support for
+more flexibility.
 
 Documentation is available at https://meuse.mokhtarabadi.fr/
 
@@ -25,7 +26,13 @@ docker pull mokhtarabadi/meuse:1.3.0
 
 ## 🚀 Quick Docker Setup
 
-Deploy your private Rust registry with SSL in 5 minutes!
+Deploy your private Rust registry in 5 minutes!
+
+### 🚀 NEW: Local Git Support
+
+- **Option 1:** Completely local setup (no external dependencies)
+- **Option 2:** GitHub fork method (traditional)
+- **Port:** Runs on port 8080 (secure, no root privileges needed)
 
 ### One-Command Setup
 

@@ -137,8 +137,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     networks:
       - meuse_network
     restart: unless-stopped
@@ -170,8 +168,6 @@ fi
 
 cat >> docker-compose.yml << 'EOF'
       - meuse_logs:/app/logs
-    ports:
-      - "8855:8855"
     networks:
       - meuse_network
     depends_on:
@@ -191,8 +187,7 @@ cat >> docker-compose.yml << 'EOF'
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - meuse_logs:/var/log/nginx
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
     networks:
       - meuse_network
     depends_on:
@@ -327,8 +322,8 @@ if [[ "$USE_LOCAL_GIT" == "true" ]]; then
         # Create index config
         cat > config.json << EOF
 {
-    "dl": "https://${DOMAIN}/api/v1/crates",
-    "api": "https://${DOMAIN}",
+    "dl": "http://${DOMAIN}:8080/api/v1/crates",
+    "api": "http://${DOMAIN}:8080",
     "allowed-registries": []
 }
 EOF
@@ -372,8 +367,8 @@ elif [[ "$USE_LOCAL_GIT" == "false" ]]; then
 
     cat > config.json << EOF
 {
-    "dl": "https://${DOMAIN}/api/v1/crates",
-    "api": "https://${DOMAIN}",
+    "dl": "http://${DOMAIN}:8080/api/v1/crates",
+    "api": "http://${DOMAIN}:8080",
     "allowed-registries": ["https://github.com/rust-lang/crates.io-index"]
 }
 EOF
@@ -436,13 +431,39 @@ sleep 5
 
 TOKEN=$(curl -s --max-time 10 --header "Content-Type: application/json" --request POST \
     --data "{\"name\":\"admin_token\",\"validity\":365,\"user\":\"admin\",\"password\":\"$ADMIN_PASSWORD\"}" \
-    http://localhost/api/v1/meuse/token | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+    http://localhost:8080/api/v1/meuse/token | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
 
 if [[ -n "$TOKEN" ]]; then
     print_info "API token created successfully!"
 else
     print_warning "Could not create API token automatically. You can create it manually after setup."
 fi
+
+check_health() {
+    print_info "Checking service health..."
+    
+    max_attempts=10
+    attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        if curl -f -s http://localhost:8080/healthz > /dev/null 2>&1; then
+            print_info "Health check passed!"
+            break
+        else
+            print_info "Health check attempt $attempt/$max_attempts failed, retrying..."
+            sleep 10
+            attempt=$((attempt + 1))
+        fi
+    done
+    
+    if [ $attempt -gt $max_attempts ]; then
+        print_error "Health checks failed after $max_attempts attempts"
+        print_info "Check the logs with: docker-compose logs"
+        exit 1
+    fi
+}
+
+check_health
 
 # Success message
 echo ""
@@ -467,23 +488,28 @@ fi
 echo "  📁 Project directory: $(pwd)"
 echo ""
 
-print_info "🚀 Next Steps:"
+print_info "📋 Useful commands:"
+echo "  docker-compose logs -f meuse    # View Meuse logs"
+echo "  docker-compose ps               # Check service status"
+echo "  docker-compose down             # Stop all services"
+echo "  docker-compose up -d            # Start services"
+echo ""
+
+print_info "🌐 Access your registry:"
+echo "  Registry URL: http://${DOMAIN}:8080"
+echo "  Health check: curl http://localhost:8080/healthz"
+echo "  Web interface: http://${DOMAIN}:8080 (if frontend enabled)"
+echo ""
+
+print_info "🔧 Documentation: See DOCKER_SETUP.md for complete setup guide"
+echo ""
+
+print_warning "📝 Don't forget to:"
 if [[ "$USE_LOCAL_GIT" == "true" ]]; then
-    echo "  1. Your registry is ready to use with local Git index!"
-    echo "  2. Set up SSL (see QUICK_START.md)"
-    echo "  3. Configure Cargo (see QUICK_START.md)"
+    echo "- Your local registry is ready to use!"
+    echo "- Configure Cargo to point to http://${DOMAIN}:8080"
 else
-    echo "  1. Set up Cloudflare SSL (see QUICK_START.md)"
-    echo "  2. Make sure your GitHub fork is accessible"
-    echo "  3. Configure Cargo (see QUICK_START.md)"
+    echo "- Configure your GitHub fork if needed"
+    echo "- Set up SSL for production use"
+    echo "- Configure Cargo to point to http://${DOMAIN}:8080"
 fi
-echo "  4. Test: curl http://localhost/healthz"
-echo ""
-
-print_info "📚 Documentation:"
-echo "  • Quick Start: QUICK_START.md"  
-echo "  • Full Guide: DOCKER_SETUP.md"
-echo "  • Commands: docker compose ps|logs|restart"
-echo ""
-
-print_info "🎊 Your Rust registry is ready!"
