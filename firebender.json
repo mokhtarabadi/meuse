@@ -1,0 +1,24 @@
+{
+  "rules": [
+    {
+      "rulesPaths": "/home/mohammad/Desktop/firebender-roles/beast_mode/rules.md"
+    }
+  ],
+  "mcpServers": {
+    "qdrant": {
+      "command": "uvx",
+      "args": ["mcp-server-qdrant"],
+      "env": {
+        "QDRANT_URL": "http://localhost:6333",
+        "QDRANT_API_KEY": "your_api_key_here",
+        "COLLECTION_NAME": "project_name_here",
+        "EMBEDDING_PROVIDER": "fastembed",
+        "EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2",
+        "FASTMCP_HOST": "127.0.0.1",
+        "FASTMCP_PORT": "8000",
+        "TOOL_FIND_DESCRIPTION": "Use this tool to search previously stored relevant context or code snippets before answering coding questions. Always call this tool before generating code.",
+        "TOOL_STORE_DESCRIPTION": "Use this tool to store useful and reusable code snippets or technical knowledge that may help with future coding questions."
+      }
+    }
+  }
+}

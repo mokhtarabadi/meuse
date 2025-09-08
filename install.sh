@@ -74,9 +74,26 @@ if [[ -z "$DOMAIN" ]]; then
     exit 1
 fi
 
-read -p "Enter your GitHub username for the crates index: " GITHUB_USER
-if [[ -z "$GITHUB_USER" ]]; then
-    print_error "GitHub username is required!"
+echo ""
+print_step "Git Index Configuration"
+echo "Choose your crate index option:"
+echo "1) Use local Git repository (recommended, no external dependencies)"
+echo "2) Use GitHub fork of crates.io-index (requires GitHub account)"
+read -p "Enter your choice (1 or 2): " GIT_CHOICE
+
+if [[ "$GIT_CHOICE" == "1" ]]; then
+    USE_LOCAL_GIT=true
+    print_info "Using local Git repository for crate index"
+elif [[ "$GIT_CHOICE" == "2" ]]; then
+    USE_LOCAL_GIT=false
+    read -p "Enter your GitHub username for the crates index: " GITHUB_USER
+    if [[ -z "$GITHUB_USER" ]]; then
+        print_error "GitHub username is required for GitHub option!"
+        exit 1
+    fi
+    print_info "Using GitHub fork: https://github.com/$GITHUB_USER/crates.io-index"
+else
+    print_error "Invalid choice! Please select 1 or 2"
     exit 1
 fi
 
@@ -139,7 +156,19 @@ services:
     volumes:
       - ./config:/app/config:ro
       - meuse_crates:/app/crates
-      - meuse_index:/app/index
+EOF
+
+if [[ "$USE_LOCAL_GIT" == "true" ]]; then
+  cat >> docker-compose.yml << 'EOF'
+      - ./index:/app/index
+EOF
+else
+  cat >> docker-compose.yml << 'EOF'
+      - ./index:/app/index:ro
+EOF
+fi
+
+cat >> docker-compose.yml << 'EOF'
       - meuse_logs:/app/logs
     ports:
       - "8855:8855"
@@ -178,7 +207,6 @@ services:
 volumes:
   postgres_data:
   meuse_crates:
-  meuse_index:
   meuse_logs:
 
 networks:
@@ -236,8 +264,21 @@ logging:
 metadata:
   type: "shell"
   path: "/app/index"
-  target: "origin/master"  
+EOF
+
+if [[ "$USE_LOCAL_GIT" == "true" ]]; then
+  cat >> config/config.yaml << EOF
+  target: "master"
+  url: "file:///app/index"
+EOF
+else
+  cat >> config/config.yaml << EOF
+  target: "origin/master"
   url: "https://github.com/${GITHUB_USER}/crates.io-index"
+EOF
+fi
+
+cat >> config/config.yaml << EOF
 
 crate:
   store: "filesystem"
@@ -269,20 +310,67 @@ print_info "Configuration files created!"
 # Setup Git index
 print_step "Setting up Git crate index..."
 
-if [[ ! -d "index" ]]; then
-    print_info "Cloning crates.io index fork..."
-    git clone "https://github.com/${GITHUB_USER}/crates.io-index.git" index || {
-        print_error "Failed to clone Git index. Make sure you have forked https://github.com/rust-lang/crates.io-index"
-        print_error "Fork it at: https://github.com/rust-lang/crates.io-index"
-        exit 1
-    }
-fi
+if [[ "$USE_LOCAL_GIT" == "true" ]]; then
+    if [[ ! -d "index" ]]; then
+        print_info "Initializing local Git repository for crate index..."
+        mkdir -p index
+        cd index
+        git init
+        
+        # Set up Git user for the repository
+        git config user.name "Meuse Registry"
+        git config user.email "registry@${DOMAIN}"
+        
+        # Create the crate index structure
+        mkdir -p 1 2 3
+        
+        # Create index config
+        cat > config.json << EOF
+{
+    "dl": "https://${DOMAIN}/api/v1/crates",
+    "api": "https://${DOMAIN}",
+    "allowed-registries": []
+}
+EOF
+        
+        # Create README for the index
+        cat > README.md << EOF
+# Local Crate Index for Meuse Registry
 
-# Configure the index
-cd index
-print_info "Configuring index for domain: $DOMAIN"
+This is a local Git repository serving as the crate index for our private Rust registry.
 
-cat > config.json << EOF
+Domain: ${DOMAIN}
+Generated: $(date)
+
+Structure:
+- 1/ : crates with 1-character names
+- 2/ : crates with 2-character names  
+- 3/ : crates with 3-character names
+- ab/cd/ : crates with 4+ character names (first 2 chars / next 2 chars)
+
+Each crate has a file containing JSON metadata for each version.
+EOF
+        
+        git add .
+        git commit -m "Initialize local crate registry index for ${DOMAIN}"
+        cd ..
+        print_info "Local Git crate index created successfully!"
+    fi
+elif [[ "$USE_LOCAL_GIT" == "false" ]]; then
+    if [[ ! -d "index" ]]; then
+        print_info "Cloning crates.io index fork..."
+        git clone "https://github.com/${GITHUB_USER}/crates.io-index.git" index || {
+            print_error "Failed to clone Git index. Make sure you have forked https://github.com/rust-lang/crates.io-index"
+            print_error "Fork it at: https://github.com/rust-lang/crates.io-index"
+            exit 1
+        }
+    fi
+
+    # Configure the index
+    cd index
+    print_info "Configuring index for domain: $DOMAIN"
+
+    cat > config.json << EOF
 {
     "dl": "https://${DOMAIN}/api/v1/crates",
     "api": "https://${DOMAIN}",
@@ -290,20 +378,20 @@ cat > config.json << EOF
 }
 EOF
 
-# Commit and push if needed
-if ! git diff --quiet --exit-code config.json 2>/dev/null; then
-    print_info "Committing index configuration..."
-    git add config.json
-    git commit -m "Configure index for Meuse registry at ${DOMAIN}"
-    
-    print_info "Pushing to GitHub..."
-    if ! git push origin master 2>/dev/null; then
-        print_warning "Could not push to GitHub. You may need to configure Git credentials."
-        print_info "You can push manually later with: cd index && git push origin master"
+    # Commit and push if needed
+    if ! git diff --quiet --exit-code config.json 2>/dev/null; then
+        print_info "Committing index configuration..."
+        git add config.json
+        git commit -m "Configure index for Meuse registry at ${DOMAIN}"
+        
+        print_info "Pushing to GitHub..."
+        if ! git push origin master 2>/dev/null; then
+            print_warning "Could not push to GitHub. You may need to configure Git credentials."
+            print_info "You can push manually later with: cd index && git push origin master"
+        fi
     fi
+    cd ..
 fi
-
-cd ..
 
 # Deploy services
 print_step "Deploying services..."
@@ -366,6 +454,11 @@ echo ""
 
 print_info "📊 Setup Summary:"
 echo "  🌐 Domain: $DOMAIN"
+if [[ "$USE_LOCAL_GIT" == "true" ]]; then
+    echo "  📋 Git Index: Local repository (file:///app/index)"
+else
+    echo "  📋 Git Index: GitHub fork (https://github.com/$GITHUB_USER/crates.io-index)"
+fi
 echo "  👤 Admin user: admin"  
 echo "  🔑 Admin password: $ADMIN_PASSWORD"
 if [[ -n "$TOKEN" ]]; then
@@ -374,10 +467,17 @@ fi
 echo "  📁 Project directory: $(pwd)"
 echo ""
 
-print_info "🔗 Next Steps:"
-echo "  1. Set up Cloudflare SSL (see QUICK_START.md)"
-echo "  2. Configure Cargo (see QUICK_START.md)"
-echo "  3. Test: curl http://localhost/healthz"
+print_info "🚀 Next Steps:"
+if [[ "$USE_LOCAL_GIT" == "true" ]]; then
+    echo "  1. Your registry is ready to use with local Git index!"
+    echo "  2. Set up SSL (see QUICK_START.md)"
+    echo "  3. Configure Cargo (see QUICK_START.md)"
+else
+    echo "  1. Set up Cloudflare SSL (see QUICK_START.md)"
+    echo "  2. Make sure your GitHub fork is accessible"
+    echo "  3. Configure Cargo (see QUICK_START.md)"
+fi
+echo "  4. Test: curl http://localhost/healthz"
 echo ""
 
 print_info "📚 Documentation:"
