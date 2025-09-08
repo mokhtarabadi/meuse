@@ -97,23 +97,30 @@ fi
 echo ""
 print_step "Git Index Configuration"
 echo "Choose your crate index option:"
-echo "1) Use local Git repository (recommended, no external dependencies)"
-echo "2) Use GitHub fork of crates.io-index (requires GitHub account)"
-read -p "Enter your choice (1 or 2): " GIT_CHOICE
+echo "1) Use local Git repository (limited, local machine only)"
+echo "2) Use GitHub fork of crates.io-index (public metadata)"
+echo "3) Use self-hosted private Git repository (fully private, recommended)"
+read -p "Enter your choice (1, 2, or 3): " GIT_CHOICE
 
 if [[ "$GIT_CHOICE" == "1" ]]; then
     USE_LOCAL_GIT=true
+    USE_SELFHOSTED_GIT=false
     print_info "Using local Git repository for crate index"
 elif [[ "$GIT_CHOICE" == "2" ]]; then
     USE_LOCAL_GIT=false
+    USE_SELFHOSTED_GIT=false
     read -p "Enter your GitHub username for the crates index: " GITHUB_USER
     if [[ -z "$GITHUB_USER" ]]; then
         print_error "GitHub username is required for GitHub option!"
         exit 1
     fi
     print_info "Using GitHub fork: https://github.com/$GITHUB_USER/crates.io-index"
+elif [[ "$GIT_CHOICE" == "3" ]]; then
+    USE_LOCAL_GIT=false
+    USE_SELFHOSTED_GIT=true
+    print_info "Using self-hosted private Git repository (fully private)"
 else
-    print_error "Invalid choice! Please select 1 or 2"
+    print_error "Invalid choice! Please select 1, 2, or 3"
     exit 1
 fi
 
@@ -180,6 +187,11 @@ if [[ "$USE_LOCAL_GIT" == "true" ]]; then
   cat >> docker-compose.yml << 'EOF'
       - ./index:/app/index
 EOF
+elif [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
+  cat >> docker-compose.yml << 'EOF'
+      - ./index:/app/index
+      - ./git-repos:/app/git-repos
+EOF
 else
   cat >> docker-compose.yml << 'EOF'
       - ./index:/app/index:ro
@@ -219,10 +231,38 @@ cat >> docker-compose.yml << 'EOF'
       timeout: 10s
       retries: 5
 
+EOF
+
+if [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
+  cat >> docker-compose.yml << 'EOF'
+  fcgiwrap:
+    image: alpine:latest
+    container_name: meuse-fcgiwrap
+    command: sh -c "apk add --no-cache fcgiwrap git && fcgiwrap -s unix:/var/run/fcgiwrap.socket -f"
+    volumes:
+      - fcgiwrap_socket:/var/run
+      - ./git-repos:/app/git-repos
+    networks:
+      - meuse_network
+    restart: unless-stopped
+
+EOF
+fi
+
+cat >> docker-compose.yml << 'EOF'
 volumes:
   postgres_data:
   meuse_crates:
   meuse_logs:
+EOF
+
+if [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
+  cat >> docker-compose.yml << 'EOF'
+  fcgiwrap_socket:
+EOF
+fi
+
+cat >> docker-compose.yml << 'EOF'
 
 networks:
   meuse_network:
@@ -230,7 +270,47 @@ networks:
 EOF
 
 # Create nginx.conf (simplified version)
-cat > nginx.conf << 'EOF'
+if [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
+  cat > nginx.conf << 'EOF'
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream meuse_backend {
+        server meuse:8855;
+    }
+
+    server {
+        listen 80;
+        server_name _;
+        
+        location / {
+            proxy_pass http://meuse_backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        
+        # Git HTTP backend for private repository access
+        location ~ /git(/.*) {
+            fastcgi_pass  unix:/var/run/fcgiwrap.socket;
+            include       fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME /usr/lib/git-core/git-http-backend;
+            fastcgi_param GIT_HTTP_EXPORT_ALL "";
+            fastcgi_param GIT_PROJECT_ROOT /app/git-repos;
+            fastcgi_param PATH_INFO $1;
+            fastcgi_param REQUEST_METHOD $request_method;
+            fastcgi_param QUERY_STRING $query_string;
+            fastcgi_param CONTENT_TYPE $content_type;
+            fastcgi_param CONTENT_LENGTH $content_length;
+        }
+    }
+}
+EOF
+else
+  cat > nginx.conf << 'EOF'
 events {
     worker_connections 1024;
 }
@@ -254,6 +334,7 @@ http {
     }
 }
 EOF
+fi
 
 # Create directories
 mkdir -p config logs/nginx
@@ -290,6 +371,11 @@ if [[ "$USE_LOCAL_GIT" == "true" ]]; then
   cat >> config/config.yaml << EOF
   target: "master"
   url: "file:///app/index"
+EOF
+elif [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
+  cat >> config/config.yaml << EOF
+  target: "master"
+  url: "https://${DOMAIN}/git/index.git"
 EOF
 else
   cat >> config/config.yaml << EOF
@@ -366,6 +452,64 @@ EOF
         git commit -m "Initialize local crate registry index for ${DOMAIN}"
         cd ..
         print_info "Local Git crate index created successfully!"
+    fi
+elif [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
+    if [[ ! -d "index" ]]; then
+        print_info "Initializing self-hosted private Git repository for crate index..."
+        mkdir -p index
+        cd index
+        git init
+        
+        # Set up Git user for the repository
+        git config user.name "Meuse Registry"
+        git config user.email "registry@${DOMAIN}"
+        
+        # Create the crate index structure
+        mkdir -p 1 2 3
+        
+        # Create index config with HTTPS protocol for external access
+        cat > config.json << EOF
+{
+    "dl": "https://${DOMAIN}/api/v1/crates",
+    "api": "https://${DOMAIN}",
+    "allowed-registries": []
+}
+EOF
+        
+        # Create README for the index
+        cat > README.md << EOF
+# Self-hosted Private Crate Index for Meuse Registry
+
+This is a self-hosted private Git repository serving as the crate index for our private Rust registry.
+
+Domain: ${DOMAIN}
+Generated: $(date)
+
+Structure:
+- 1/ : crates with 1-character names
+- 2/ : crates with 2-character names  
+- 3/ : crates with 3-character names
+- ab/cd/ : crates with 4+ character names (first 2 chars / next 2 chars)
+
+Each crate has a file containing JSON metadata for each version.
+EOF
+        
+        git add .
+        git commit -m "Initialize self-hosted private crate registry index for ${DOMAIN}"
+        cd ..
+        
+        # Create bare repository for HTTP access
+        print_info "Creating bare Git repository for HTTP access..."
+        mkdir -p git-repos
+        git clone --bare index git-repos/index.git
+        
+        # Configure bare repository
+        cd git-repos/index.git
+        git config http.receivepack true
+        git config http.uploadpack true
+        cd ../..
+        
+        print_info "Self-hosted private Git crate index created successfully!"
     fi
 elif [[ "$USE_LOCAL_GIT" == "false" ]]; then
     if [[ ! -d "index" ]]; then
@@ -551,6 +695,8 @@ print_info "📊 Setup Summary:"
 echo "  🌐 Domain: $DOMAIN"
 if [[ "$USE_LOCAL_GIT" == "true" ]]; then
     echo "  📋 Git Index: Local repository (file:///app/index)"
+elif [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
+    echo "  📋 Git Index: Self-hosted private repository (http://localhost:8080/api/v1/crates)"
 else
     echo "  📋 Git Index: GitHub fork (https://github.com/$GITHUB_USER/crates.io-index)"
 fi
@@ -581,6 +727,9 @@ echo ""
 print_warning "📝 Don't forget to:"
 if [[ "$USE_LOCAL_GIT" == "true" ]]; then
     echo "- Your local registry is ready to use!"
+    echo "- Configure Cargo to point to http://${DOMAIN}:8080"
+elif [[ "$USE_SELFHOSTED_GIT" == "true" ]]; then
+    echo "- Your self-hosted private registry is ready to use!"
     echo "- Configure Cargo to point to http://${DOMAIN}:8080"
 else
     echo "- Configure your GitHub fork if needed"

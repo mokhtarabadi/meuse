@@ -31,6 +31,7 @@ The image includes:
 8. [Cargo Configuration](#cargo-configuration)
 9. [Usage Examples](#usage-examples)
 10. [Troubleshooting](#troubleshooting)
+11. [Managing Self-Hosted Repository](#managing-self-hosted-repository)
 
 ## Prerequisites
 
@@ -77,7 +78,36 @@ mkdir -p config
 
 ## Git Index Repository Setup
 
-Meuse requires a Git repository to store crate metadata. You need to fork the official crates.io index:
+Meuse requires a Git repository to store crate metadata. You have three options:
+
+### Option 1: Self-Hosted Private Git Repository (Recommended)
+
+**Fully private solution with no external dependencies**
+
+This option creates a private Git repository on your server that is served via HTTP/HTTPS. Your crate metadata never
+leaves your server.
+
+**Benefits:**
+
+- ✅ Completely private - no metadata exposed externally
+- ✅ No dependency on external services like GitHub
+- ✅ Full control over your data
+- ✅ Standard Git protocol support
+- ✅ Works with all Cargo clients
+
+**How it works:**
+
+1. Creates a local Git repository with your crate index
+2. Sets up a bare Git repository for HTTP access
+3. Configures nginx with `git-http-backend` to serve the repository
+4. Uses `fcgiwrap` to handle Git HTTP protocol
+
+**Automatic Setup:**
+The install script automatically configures everything when you choose Option 3.
+
+### Option 2: GitHub Fork (Public Metadata)
+
+**⚠️ Warning: This makes your crate metadata public**
 
 ### 1. Fork crates.io-index
 
@@ -281,6 +311,24 @@ real_ip_header CF-Connecting-IP;
 
 ## Cargo Configuration
 
+### For Self-Hosted Private Git Repository
+
+Add to `~/.cargo/config.toml`:
+
+```toml
+[registries.myregistry]
+index = "https://your-domain.com/git/index.git"
+
+# Optional: Make your registry the default
+[source.crates-io]
+replace-with = "myregistry"
+
+[source.myregistry]
+registry = "https://your-domain.com/git/index.git"
+```
+
+### For GitHub Fork
+
 ### 1. Registry Configuration
 
 Add to `~/.cargo/config.toml`:
@@ -295,22 +343,6 @@ replace-with = "myregistry"
 
 [source.myregistry]
 registry = "https://github.com/YOUR_USERNAME/crates.io-index"
-```
-
-### 2. Authentication
-
-Add to `~/.cargo/credentials.toml`:
-
-```toml
-[registries.myregistry]
-token = "YOUR_API_TOKEN_HERE"
-```
-
-### 3. Initialize Git Index Locally
-
-```bash
-# Clone your index repository for Meuse to use
-docker-compose exec meuse git clone https://github.com/YOUR_USERNAME/crates.io-index /app/index
 ```
 
 ## Usage Examples
@@ -470,6 +502,128 @@ tar -xzf crates-backup.tar.gz -C data/
 
 # Restore git index
 tar -xzf index-backup.tar.gz -C data/
+```
+
+## Managing Self-Hosted Repository
+
+### Understanding the Self-Hosted Setup
+
+When you choose the self-hosted Git option, the installer creates:
+
+1. **Working Repository** (`./index/`): Where Meuse manages crate metadata
+2. **Bare Repository** (`./git-repos/index.git/`): HTTP-accessible repository for Cargo clients
+3. **Git HTTP Backend**: nginx + fcgiwrap serving the bare repository
+
+### Repository Structure
+
+```
+meuse-registry/
+├── index/                    # Working Git repository (Meuse writes here)
+│   ├── config.json          # Registry configuration
+│   ├── 1/, 2/, 3/           # Crate index directories
+│   └── ab/cd/               # Crate metadata files
+├── git-repos/               # Bare repositories for HTTP access
+│   └── index.git/           # Bare repository served via HTTP
+└── docker-compose.yml       # Includes fcgiwrap service
+```
+
+### Manual Repository Operations
+
+**View repository status:**
+
+```bash
+cd meuse-registry/index
+git status
+git log --oneline -10
+```
+
+**Sync working repository to bare repository:**
+
+```bash
+cd meuse-registry
+git --git-dir=git-repos/index.git --work-tree=index fetch origin master:master
+```
+
+**Backup the repository:**
+
+```bash
+# Backup working repository
+tar -czf index-backup-$(date +%Y%m%d).tar.gz index/
+
+# Backup bare repository  
+tar -czf bare-repo-backup-$(date +%Y%m%d).tar.gz git-repos/
+```
+
+### Troubleshooting Self-Hosted Git Issues
+
+**1. "Repository not accessible" errors**
+
+Check fcgiwrap service status:
+
+```bash
+docker compose logs fcgiwrap
+docker compose ps fcgiwrap
+```
+
+**2. Git HTTP backend not working**
+
+Test the Git HTTP endpoint:
+
+```bash
+curl -I https://your-domain.com/git/index.git/info/refs?service=git-upload-pack
+```
+
+Expected response should include:
+
+```
+HTTP/2 200
+Content-Type: application/x-git-upload-pack-advertisement
+```
+
+**3. Permission issues**
+
+Fix repository permissions:
+
+```bash
+# Fix working repository permissions
+sudo chown -R $(whoami):$(whoami) index/
+chmod -R 755 index/
+
+# Fix bare repository permissions  
+sudo chown -R $(whoami):$(whoami) git-repos/
+chmod -R 755 git-repos/
+```
+
+**4. fcgiwrap socket issues**
+
+Restart the fcgiwrap service:
+
+```bash
+docker compose restart fcgiwrap nginx
+```
+
+### Git Repository Maintenance
+
+**Clean up repository:**
+
+```bash
+cd index
+git gc --prune=now
+git repack -ad
+```
+
+**Verify repository integrity:**
+
+```bash
+cd index  
+git fsck --full
+```
+
+**Update bare repository from working repository:**
+
+```bash
+cd index
+git push ../git-repos/index.git master
 ```
 
 ## Security Considerations
