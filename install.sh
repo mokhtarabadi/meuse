@@ -261,7 +261,8 @@ DOMAIN=${DOMAIN}
 EOF
 
 # Update config with actual password
-sed -i "s/\${POSTGRES_PASSWORD}/${POSTGRES_PASS}/g" config/config.yaml
+export POSTGRES_PASSWORD="$POSTGRES_PASS"
+envsubst < config/config.yaml > config/config.yaml.tmp && mv config/config.yaml.tmp config/config.yaml
 
 print_info "Configuration files created!"
 
