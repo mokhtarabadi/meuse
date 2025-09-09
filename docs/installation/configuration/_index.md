@@ -10,16 +10,16 @@ Meuse is configured through a YAML file. Meuse uses [yummy](https://github.com/e
 
 The list of available parsers can be found in the yummy [README](https://github.com/exoscale/yummy#additional-yaml-tags).
 
-Secrets can be loaded using the special `!secret` or `!envsecret` tags:
+Secrets can be loaded using the special `!secret` or `!envvar` tags:
 
 - Use `!secret` when you want to directly write a secret value into the YAML file. This will mark the value as
   sensitive, so that Meuse can apply extra security measures.
-- Use `!envsecret` to instruct Meuse to read the secret value from the specified environment variable at runtime. This
+- Use `!envvar` to instruct Meuse to read the secret value from the specified environment variable at runtime. This
   is useful when you don't want the secret to appear in the YAML file itself, and prefer to provide it via environment
   variables.
 
 For example, use `password: !secret "my-password"` to specify the password directly, or
-`password: !envsecret MY_DB_PASSWORD_ENV` to load it from the environment.
+`password: !envvar MY_DB_PASSWORD_ENV` to load it from the environment.
 
 Here is a commented example of a Meuse configuration:
 
@@ -33,7 +33,7 @@ database:
   # password: !secret "meuse"
   #
   # For production with an environment variable:
-  password: !envsecret MEUSE_DB_PASSWORD_ENV
+  password: !envvar MEUSE_DB_PASSWORD_ENV
   # The database host
   host: "127.0.0.1"
   # The database port
@@ -114,7 +114,7 @@ metadata:
   # password: !secret "my-git-password"
   #
   # For production with an environment variable:
-  password: !envsecret GIT_PASSWORD_ENV
+  password: !envvar GIT_PASSWORD_ENV
 
 # The crate binary files configuration
 crate:
@@ -137,8 +137,8 @@ crate:
   # secret-key: !secret "your-secret-key"
   #
   # For production with environment variables:
-  access-key: !envsecret S3_ACCESS_KEY_ENV
-  secret-key: !envsecret S3_SECRET_KEY_ENV
+  access-key: !envvar S3_ACCESS_KEY_ENV
+  secret-key: !envvar S3_SECRET_KEY_ENV
 
   # s3 endpoint
   endpoint: s3-endpoint
@@ -163,7 +163,7 @@ frontend:
   # secret: !secret "ozeifjrizjrjghtkzifrnbjfkzoejfjz"
   #
   # For production with an environment variable:
-  secret: !envsecret FRONTEND_SECRET_ENV
+  secret: !envvar FRONTEND_SECRET_ENV
 ```
 
 ## Database migrations
