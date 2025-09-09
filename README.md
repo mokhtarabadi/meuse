@@ -182,6 +182,30 @@ git config http.uploadpack true
 cd ../..
 ```
 
+#### Option 4: Sparse Protocol Index (🚀 Most Efficient)
+
+```bash
+# 1. Initialize index directory structure
+mkdir -p ./index
+cd ./index
+
+# 2. Create the crate index structure
+mkdir -p 1 2 3
+
+# 3. Create index config
+cat > config.json << EOF
+{
+    "dl": "https://your-domain.com/api/v1/crates",
+    "api": "https://your-domain.com",
+    "allowed-registries": []
+}
+EOF
+cd ../
+```
+
+The sparse protocol doesn't use Git, so you don't need to initialize a Git repository or create a bare clone.
+However, the directory structure must be maintained for compatibility with both protocols.
+
 ### 5. Configure Git HTTP Backend
 
 The Git repository needs to be served via HTTP for Cargo to access it. The included Nginx configuration includes a setup
@@ -440,17 +464,22 @@ server {
 Add to `~/.cargo/config.toml`:
 
 ```toml
+# Option 1: Git-based protocol (traditional)
 [registries.myregistry]
-index = "http://localhost:8080"  # For local Git
+index = "http://localhost:8080/git/index.git"  # For self-hosted Git
 # Or for GitHub fork: "https://github.com/YOUR_USERNAME/crates.io-index"
-# Or for self-hosted Git: "http://your-domain.com/git/index.git"
+
+# Option 2: Sparse protocol (more efficient)
+[registries.myregistry]
+index = "sparse+http://localhost:8080/index/"
 
 # Optional: Make your registry the default
 [source.crates-io]
 replace-with = "myregistry"
 
 [source.myregistry]
-registry = "http://localhost:8080"  # Same as above
+registry = "http://localhost:8080/git/index.git"  # Same as above for Git protocol
+# Or for sparse protocol: registry = "sparse+http://localhost:8080/index/"
 ```
 
 ### Add Authentication Token
@@ -513,7 +542,14 @@ my-private-crate = { version = "1.0", registry = "myregistry" }
     - Common error: 404 - This usually means Nginx can't find git-http-backend or fcgiwrap.sock
     - Common error: 500 - Check Nginx error logs for issues with the Git backend
 
-6. **Configuration syntax issues**
+6. **Sparse protocol issues**
+    - Verify index directory structure: Ensure the index has the correct structure with 1, 2, 3 directories
+    - Check Nginx configuration: Make sure `/index/` location is properly configured to serve files
+    - Test config file access: `curl -i http://localhost:8080/index/config.json`
+    - Verify Cargo version: Sparse protocol requires Cargo 1.68+ (`cargo --version` to check)
+    - For 404 errors: Make sure your index directory is correctly mounted in the Nginx container
+
+7. **Configuration syntax issues**
     - The config.yaml file is sensitive to YAML syntax and secrets formatting
     - For passwords, use: `password: "actual_password"` (with quotes)
     - For environment variables in config.yaml, use: `password: !secret "${ENV_VAR_NAME}"`
@@ -568,4 +604,46 @@ git fsck --full
 
 # Update bare repository from working repository (for self-hosted Git)
 git push ../git-repos/index.git master
+```
+
+## Registry Protocols
+
+Meuse supports two protocols for accessing the crate registry:
+
+### 1. Git-based Protocol (Traditional)
+
+This is the original protocol used by Cargo, where crate metadata is stored in a Git repository.
+
+**Advantages:**
+
+- Compatible with all Cargo versions
+- Works with both public and private repositories
+
+**Disadvantages:**
+
+- Requires Git to be installed
+- Downloads the entire index which can be slow
+- More resource-intensive
+
+### 2. Sparse Protocol (Modern)
+
+A newer, more efficient protocol that only downloads the metadata needed for specific crates.
+
+**Advantages:**
+
+- Faster dependency resolution
+- Lower bandwidth usage
+- No Git dependency
+- More efficient caching
+
+**Disadvantages:**
+
+- Only supported in newer Cargo versions (1.68+)
+- May require additional configuration
+
+To use the sparse protocol, prefix the index URL with `sparse+` in your Cargo configuration:
+
+```toml
+[registries.myregistry]
+index = "sparse+https://your-domain.com/index/"
 ```

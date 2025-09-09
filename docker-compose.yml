@@ -50,6 +50,7 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - meuse_logs:/var/log/nginx
       - ./git-repos:/git-repos:ro
+      - ./index:/app/index:ro
     ports:
       - "8080:80"
     networks:
