@@ -5,6 +5,8 @@ services:
     environment:
       - MEUSE_INIT_MODE=${MEUSE_INIT_MODE:-local}
       - GITHUB_REPO_URL=${GITHUB_REPO_URL}
+      - DOMAIN=${DOMAIN:-localhost}
+      - MEUSE_PROTOCOL=${MEUSE_PROTOCOL:-http}
     volumes:
       - meuse_index:/app/index
       - meuse_crates:/app/crates
@@ -45,7 +47,7 @@ services:
       - MEUSE_FRONTEND_SECRET=${MEUSE_FRONTEND_SECRET}
       - DOMAIN=${DOMAIN}
     volumes:
-      - meuse_index:/app/index:ro
+      - meuse_index:/app/index
       - ./config:/app/config:ro
       - meuse_crates:/app/crates
       - meuse_logs:/app/logs

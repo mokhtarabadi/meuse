@@ -34,7 +34,8 @@ A free, open-source private crate registry for Rust that implements the [alterna
    ```bash
    POSTGRES_PASSWORD=your_secure_password
    MEUSE_FRONTEND_SECRET=your32charalphanumericsecret
-   DOMAIN=your-domain.com
+   DOMAIN=your-domain.com  # Your custom domain (e.g. registry.mycompany.com)
+   MEUSE_PROTOCOL=http     # Set to https if behind SSL proxy
 
    # Optional: Initialization mode (default: local)
    MEUSE_INIT_MODE=local  # Options: local, github, sparse
@@ -42,6 +43,42 @@ A free, open-source private crate registry for Rust that implements the [alterna
    # For GitHub fork mode:
    # GITHUB_REPO_URL=https://github.com/YOUR_USERNAME/crates.io-index
    ```
+
+## Production Deployment with Custom Domains and HTTPS
+
+For production use, it's recommended to deploy Meuse behind a reverse proxy (e.g., Nginx, Caddy, Apache, or a cloud load
+balancer) with HTTPS/TLS enabled.
+
+**Steps:**
+
+1. Set up your reverse proxy/service with SSL certificates for your custom domain (e.g., registry.mycompany.com).
+2. Forward requests from `https://your-domain.com` to Meuse's container `http://localhost:8080`.
+3. Set the environment variable in `.env`:
+   ```
+   DOMAIN=your-domain.com
+   MEUSE_PROTOCOL=https
+   ```
+4. In your Cargo configuration (`config.toml`), always use the public protocol/domain:
+
+   ```toml
+   [registries.myregistry]
+   index = "sparse+https://your-domain.com/index/"
+   # or for Git protocol (if used):
+   index = "https://your-domain.com/git/index.git"
+   ```
+
+5. For API calls, reference your domain and protocol:
+   ```
+   curl -X POST https://your-domain.com/api/v1/meuse/token \
+     -H "Content-Type: application/json" \
+     -d '{"name":"tech_token",...}'
+   ```
+
+**Notes:**
+
+- Meuse itself does not terminate TLS; use a proxy for HTTPS.
+- Set `MEUSE_PROTOCOL=https` so that generated URLs in `config.json` and other endpoints match your external scheme.
+- If you change your domain or protocol, rebuild or override your index `config.json`.
 
 3. **Setup directories:**
     ```bash
@@ -112,6 +149,9 @@ A free, open-source private crate registry for Rust that implements the [alterna
     docker compose up -d
     ```
 
+   **Important**: Wait at least 45 seconds after starting services before proceeding to user creation. This allows the
+   database to fully initialize and the Meuse application to become ready.
+
 7. **Create users and tokens:**
    ```bash
    # First, create an admin user for initial setup
@@ -122,7 +162,7 @@ A free, open-source private crate registry for Rust that implements the [alterna
    # Create admin user in database
    docker compose exec postgres psql -U meuse -d meuse -c "
    INSERT INTO users(id, name, password, description, active, role_id)
-   VALUES ('$(uuidgen)', 'admin', '$HASH', 'Admin user', true, '867428a0-69ba-11e9-a674-9f6c32022150');"
+   VALUES ('550e8400-e29b-41d4-a716-446655440000', 'admin', '$HASH', 'Admin user', true, '867428a0-69ba-11e9-a674-9f6c32022150');"
 
    # Now create a tech user for day-to-day operations
    TECH_HASH=$(docker compose exec meuse java -jar /app/meuse.jar password secure_tech_password)
@@ -130,10 +170,11 @@ A free, open-source private crate registry for Rust that implements the [alterna
    # Create tech user in database
    docker compose exec postgres psql -U meuse -d meuse -c "
    INSERT INTO users(id, name, password, description, active, role_id)
-   VALUES ('$(uuidgen)', 'tech_user', '$TECH_HASH', 'Technical user for crate management', true, 'a5435b66-69ba-11e9-8385-8b7c3810e186');"
+   VALUES ('550e8400-e29b-41d4-a716-446655440001', 'tech_user', '$TECH_HASH', 'Technical user for crate management', true, 'a5435b66-69ba-11e9-8385-8b7c3810e186');"
 
    # Get an API token for the tech user (valid for 365 days)
-   curl -X POST http://localhost:8080/api/v1/meuse/token \
+   # Replace ${PROTOCOL} and ${DOMAIN} with your actual values from .env
+   curl -X POST ${PROTOCOL}://${DOMAIN}:8080/api/v1/meuse/token \
      -H "Content-Type: application/json" \
      -d '{"name":"tech_token","validity":365,"user":"tech_user","password":"secure_tech_password"}'
    # The response will contain your token: {"token":"your-token-value"}
@@ -171,7 +212,8 @@ A free, open-source private crate registry for Rust that implements the [alterna
 ### Environment Variables (.env)
 - `POSTGRES_PASSWORD`: Database password
 - `MEUSE_FRONTEND_SECRET`: 32+ character session secret
-- `DOMAIN`: Your registry domain
+- `DOMAIN`: Your registry domain (default: localhost)
+- `MEUSE_PROTOCOL`: Protocol to use in registry URLs (http or https, default: http)
 - `MEUSE_INIT_MODE`: Initialization mode (local/github/sparse, default: local)
 - `GITHUB_REPO_URL`: GitHub repository URL for fork mode
 - `S3_ACCESS_KEY_ENV`: (Optional) When using S3 storage, the access key
@@ -237,16 +279,16 @@ A free, open-source private crate registry for Rust that implements the [alterna
 
 ### Configure Cargo
 
-Add to `~/.cargo/config.toml`:
+Add to `~/.cargo/config.toml` (replace `${DOMAIN}` and `${PROTOCOL}` with your settings from `.env`):
 ```toml
 [registries.myregistry]
 # Choose ONE of the following index options:
 
 # Option 1: Git protocol (classic)
-index = "http://localhost:8080/git/index.git"
+index = "${PROTOCOL}://${DOMAIN}/git/index.git"
 
 # Option 2: Sparse protocol (Cargo 1.68+, recommended)
-index = "sparse+http://localhost:8080/index/"
+index = "sparse+${PROTOCOL}://${DOMAIN}/index/"
 ```
 
 Add to `~/.cargo/credentials.toml`:
@@ -315,8 +357,8 @@ which defines the registry index format:
 - It contains a `config.json` file with registry configuration:
   ```json
   {
-    "dl": "http://localhost:8080/api/v1/crates/{crate}/{version}/download",
-    "api": "http://localhost:8080",
+    "dl": "${PROTOCOL}://${DOMAIN}:8080/api/v1/crates/{crate}/{version}/download",
+    "api": "${PROTOCOL}://${DOMAIN}:8080",
     "allowed-registries": []
   }
   ```
@@ -389,6 +431,31 @@ tokens with expiration dates for API access and Cargo authentication.
 **404 Errors**
 - Confirm index structure exists
 - Verify Nginx configuration for `/index/` or `/git/` paths
+- Check that your `DOMAIN` and `MEUSE_PROTOCOL` settings are correct in `.env`
+- Verify domain configuration in your reverse proxy
+
+**Initialization Troubleshooting**
+
+- When running the init service (`docker compose --profile init run --rm init`), look for these success indicators:
+  ```
+  ✓ Git operation successful: git init
+  ✓ Created config.json
+  ✓ Git operation successful: git commit
+  ✓ Git operation successful: git clone --bare
+  Setting proper permissions (UID/GID: 999:999)...
+  ✓ Initialization completed successfully!
+  ```
+- If the init script fails, check for error messages that indicate which specific operation failed
+- For permission errors during crate publishing, ensure the meuse service volume mount for index is writeable (not
+  read-only)
+- After initialization, wait 45 seconds before creating users to ensure all services are fully ready
+
+**Domain/Protocol Issues**
+
+- If you changed your domain or protocol after initialization, you may need to rebuild the index or manually update
+  `config.json`
+- For HTTPS deployments, ensure your SSL certificates are valid and trusted
+- Check that client configs (`~/.cargo/config.toml`) use the same domain and protocol as your server
 
 ### Getting Help
 - Check logs: `docker compose logs`

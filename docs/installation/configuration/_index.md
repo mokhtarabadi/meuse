@@ -10,16 +10,8 @@ Meuse is configured through a YAML file. Meuse uses [yummy](https://github.com/e
 
 The list of available parsers can be found in the yummy [README](https://github.com/exoscale/yummy#additional-yaml-tags).
 
-Secrets can be loaded using the special `!secret` or `!envvar` tags:
-
-- Use `!secret` when you want to directly write a secret value into the YAML file. This will mark the value as
-  sensitive, so that Meuse can apply extra security measures.
-- Use `!envvar` to instruct Meuse to read the secret value from the specified environment variable at runtime. This
-  is useful when you don't want the secret to appear in the YAML file itself, and prefer to provide it via environment
-  variables.
-
-For example, use `password: !secret "my-password"` to specify the password directly, or
-`password: !envvar MY_DB_PASSWORD_ENV` to load it from the environment.
+Secrets can be loaded using the special `!secret` or `!envvar` (to read a secret from an environment variable) tags.
+These tags will indicate to Meuse that the value is a secret and extra security measures will be added to the variable.
 
 Here is a commented example of a Meuse configuration:
 
@@ -28,12 +20,8 @@ Here is a commented example of a Meuse configuration:
 database:
   # The database user
   user: "meuse"
-  # The database password (you can either provide literal secrets for testing or reference environment variables for production)
-  # For development/testing with a literal secret:
-  # password: !secret "meuse"
-  #
-  # For production with an environment variable:
-  password: !envvar MEUSE_DB_PASSWORD_ENV
+  # The database password
+  password: !secret "meuse"
   # The database host
   host: "127.0.0.1"
   # The database port
@@ -87,9 +75,12 @@ metadata:
   # containing the crate metadata.
   # Only one should be configured.
 
-  #### shell-out to the git command
-  #### Meuse will shell-out to the git command to manage the index.
+  # Meuse supports multiple ways of managing the crate index
+  # containing the crate metadata.
+  # Only one should be configured.
 
+  # Option 1: shell-out to the git command
+  # Meuse will shell-out to the git command to manage the index.
   type: "shell"
   # The local path of your Git index
   path: "/home/mathieu/prog/rust/testregistry"
@@ -98,53 +89,38 @@ metadata:
   # The URL of your Git index.
   url: "https://github.com/mcorbin/testregistry"
 
-  #### JGit: Meuse will use a Java implementation of Git.
-  #### The Git command is not needed
-
-  type: "jgit"
+  # Option 2: JGit: Meuse will use a Java implementation of Git.
+  # The Git command is not needed
+  # type: "jgit"
   # The local path of your Git index
-  path: "/home/mathieu/prog/rust/testregistry"
+  # path: "/home/mathieu/prog/rust/testregistry"
   # The branch which will contain the metadata files
-  target: "origin/master"
+  # target: "origin/master"
   # Your Git username
-  username: "my-git-username"
+  # username: "my-git-username"
   # Your Git password. If you use Github, the password can also be
-  # a Github Access Token.
-  # For development/testing with a literal secret:
+  # a Github Access Token
   # password: !secret "my-git-password"
-  #
-  # For production with an environment variable:
-  password: !envvar GIT_PASSWORD_ENV
 
 # The crate binary files configuration
 crate:
   # Meuse supports multiple backends for crate files.
   # Only one should be configured.
 
-  #### filesystem backend:
-
+  # Option 1: filesystem backend:
   store: filesystem
   # The local path of your crate files
   path: "/home/mathieu/prog/rust/crates"
 
-  #### S3-compatible storage backend:
-
-  store: s3
-
-  # s3 credentials (you can either provide literal secrets for testing or reference environment variables for production)
-  # For development/testing with literal secrets:
-  # access-key: !secret "your-access-key"
-  # secret-key: !secret "your-secret-key"
-  #
-  # For production with environment variables:
-  access-key: !envvar S3_ACCESS_KEY_ENV
-  secret-key: !envvar S3_SECRET_KEY_ENV
-
+  # Option 2: S3-compatible storage backend:
+  # store: s3
+  # s3 credentials
+  # access-key: !envvar S3_ACCESS_KEY
+  # secret-key: !envvar S3_SECRET_KEY
   # s3 endpoint
-  endpoint: s3-endpoint
-
+  # endpoint: s3-endpoint
   # The bucket which will be used to store the files
-  bucket: bucket-name
+  # bucket: bucket-name
 
 # Activates the Meuse frontend
 # The frontend is currently in alpha, and is accessible on the "/front" URL.
@@ -159,11 +135,7 @@ frontend:
   public: false
 
   # A random string with 32 characters.
-  # For development/testing with a literal secret:
-  # secret: !secret "ozeifjrizjrjghtkzifrnbjfkzoejfjz"
-  #
-  # For production with an environment variable:
-  secret: !envvar FRONTEND_SECRET_ENV
+  secret: !secret "ozeifjrizjrjghtkzifrnbjfkzoejfjz"
 ```
 
 ## Database migrations
