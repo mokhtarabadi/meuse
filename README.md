@@ -69,7 +69,7 @@ A free, open-source private crate registry for Rust that implements the [alterna
     cat > config/config.yaml << EOF
     database:
       user: "meuse"
-      password: !secret "\${POSTGRES_PASSWORD}"
+      password: !envsecret "${POSTGRES_PASSWORD}"
       host: "postgres"
       port: 5432
       name: "meuse"
@@ -94,15 +94,15 @@ A free, open-source private crate registry for Rust that implements the [alterna
       path: "/app/crates"
       # Or for S3 storage:
       # store: "s3"
-      # access-key: !secret "\${S3_ACCESS_KEY}"
-      # secret-key: !secret "\${S3_SECRET_KEY}"
+      # access-key: !envsecret S3_ACCESS_KEY_ENV
+      # secret-key: !envsecret S3_SECRET_KEY_ENV
       # endpoint: "your-s3-endpoint"
       # bucket: "your-bucket-name"
 
     frontend:
       enabled: true
       public: true  # Set to false for production
-      secret: !secret "\${MEUSE_FRONTEND_SECRET}"
+      secret: !envsecret "${MEUSE_FRONTEND_SECRET}"
     EOF
     ```
 
@@ -173,8 +173,8 @@ A free, open-source private crate registry for Rust that implements the [alterna
 - `DOMAIN`: Your registry domain
 - `MEUSE_INIT_MODE`: Initialization mode (local/github/sparse, default: local)
 - `GITHUB_REPO_URL`: GitHub repository URL for fork mode
-- `S3_ACCESS_KEY`: (Optional) When using S3 storage, the access key
-- `S3_SECRET_KEY`: (Optional) When using S3 storage, the secret key
+- `S3_ACCESS_KEY_ENV`: (Optional) When using S3 storage, the access key
+- `S3_SECRET_KEY_ENV`: (Optional) When using S3 storage, the secret key
 
 ### Config File (config.yaml)
 
@@ -183,7 +183,7 @@ A free, open-source private crate registry for Rust that implements the [alterna
 
 - **Database**: Connection settings
     - `user`: Database username
-  - `password`: Database password (**use `!secret "${POSTGRES_PASSWORD}"` format**)
+  - `password`: Database password (**use `!envsecret "${POSTGRES_PASSWORD}"` format**)
     - `host`: Database hostname
     - `port`: Database port
     - `name`: Database name
@@ -213,15 +213,15 @@ A free, open-source private crate registry for Rust that implements the [alterna
             - `path`: Local path to Git index
             - `target`: Branch containing metadata files
             - `username`: Git username
-          - `password`: Git password or token (**use `!secret` for sensitive values**)
+          - `password`: Git password or token (**use `!envsecret` for environment variables**)
 
 - **Crate**: Storage backend and configuration
     - `store`: Backend type
         - `filesystem`:
             - `path`: Local path for crate files
         - `s3`:
-            - `access-key`: S3 access key (**use `!secret` for sensitive values**)
-            - `secret-key`: S3 secret key (**use `!secret "${S3_SECRET_KEY}"` format**)
+            - `access-key`: S3 access key (**use `!envsecret S3_ACCESS_KEY_ENV` for environment variables**)
+            - `secret-key`: S3 secret key (**use `!envsecret S3_SECRET_KEY_ENV` for environment variables**)
             - `endpoint`: S3 endpoint URL
             - `bucket`: S3 bucket name
             - `prefix`: (Optional) Prefix for S3 keys
@@ -230,7 +230,7 @@ A free, open-source private crate registry for Rust that implements the [alterna
     - `enabled`: Enable or disable the frontend (true/false)
     - `public`: Disable frontend authentication (true/false)
   - `secret`: Random string with at least 32 characters for session encryption (*
-    *use `!secret "${MEUSE_FRONTEND_SECRET}"` format**)
+    *use `!envsecret "${MEUSE_FRONTEND_SECRET}"` format**)
 
 ## Usage
 

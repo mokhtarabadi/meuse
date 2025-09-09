@@ -10,7 +10,16 @@ Meuse is configured through a YAML file. Meuse uses [yummy](https://github.com/e
 
 The list of available parsers can be found in the yummy [README](https://github.com/exoscale/yummy#additional-yaml-tags).
 
-Secrets can be loaded using the special `!secret` or `!envsecret` (to read a secret from an environment variable) tags. These tags will indicate to Meuse that the value is a secret and extra security measures will be added to the variable.
+Secrets can be loaded using the special `!secret` or `!envsecret` tags:
+
+- Use `!secret` when you want to directly write a secret value into the YAML file. This will mark the value as
+  sensitive, so that Meuse can apply extra security measures.
+- Use `!envsecret` to instruct Meuse to read the secret value from the specified environment variable at runtime. This
+  is useful when you don't want the secret to appear in the YAML file itself, and prefer to provide it via environment
+  variables.
+
+For example, use `password: !secret "my-password"` to specify the password directly, or
+`password: !envsecret MY_DB_PASSWORD_ENV` to load it from the environment.
 
 Here is a commented example of a Meuse configuration:
 
@@ -19,8 +28,12 @@ Here is a commented example of a Meuse configuration:
 database:
   # The database user
   user: "meuse"
-  # The database password
-  password: !secret "meuse"
+  # The database password (you can either provide literal secrets for testing or reference environment variables for production)
+  # For development/testing with a literal secret:
+  # password: !secret "meuse"
+  #
+  # For production with an environment variable:
+  password: !envsecret MEUSE_DB_PASSWORD_ENV
   # The database host
   host: "127.0.0.1"
   # The database port
@@ -96,8 +109,12 @@ metadata:
   # Your Git username
   username: "my-git-username"
   # Your Git password. If you use Github, the password can also be
-  # a Github Access Token
-  password: !secret "my-git-password"
+  # a Github Access Token.
+  # For development/testing with a literal secret:
+  # password: !secret "my-git-password"
+  #
+  # For production with an environment variable:
+  password: !envsecret GIT_PASSWORD_ENV
 
 # The crate binary files configuration
 crate:
@@ -114,9 +131,14 @@ crate:
 
   store: s3
 
-  # s3 credentials
-  access-key: !secret your-access-key
-  secret-key: !secret your-secret-key
+  # s3 credentials (you can either provide literal secrets for testing or reference environment variables for production)
+  # For development/testing with literal secrets:
+  # access-key: !secret "your-access-key"
+  # secret-key: !secret "your-secret-key"
+  #
+  # For production with environment variables:
+  access-key: !envsecret S3_ACCESS_KEY_ENV
+  secret-key: !envsecret S3_SECRET_KEY_ENV
 
   # s3 endpoint
   endpoint: s3-endpoint
@@ -137,7 +159,11 @@ frontend:
   public: false
 
   # A random string with 32 characters.
-  secret: !secret "ozeifjrizjrjghtkzifrnbjfkzoejfjz"
+  # For development/testing with a literal secret:
+  # secret: !secret "ozeifjrizjrjghtkzifrnbjfkzoejfjz"
+  #
+  # For production with an environment variable:
+  secret: !envsecret FRONTEND_SECRET_ENV
 ```
 
 ## Database migrations
