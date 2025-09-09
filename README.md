@@ -182,7 +182,51 @@ git config http.uploadpack true
 cd ../..
 ```
 
-### 5. Deploy Services
+### 5. Update Configuration
+
+Make sure your config.yaml file has the correct database password that matches your .env file:
+
+```bash
+# Get the PostgreSQL password from .env
+POSTGRES_PWD=$(grep POSTGRES_PASSWORD .env | cut -d= -f2)
+
+# Update config.yaml with the correct password syntax
+cat > config/config.yaml << EOF
+database:
+  user: "meuse"
+  password: "${POSTGRES_PWD}"
+  host: "postgres"
+  port: 5432
+  name: "meuse"
+
+http:
+  address: "0.0.0.0"
+  port: 8855
+
+logging:
+  level: "info"
+  console:
+    encoder: "json"
+
+metadata:
+  type: "shell"
+  path: "/app/index"
+  target: "master"
+  url: "http://localhost:8080/git/index.git" # For self-hosted Git
+  # Or use "file:///app/index" for local Git
+  # Or use "https://github.com/YOUR_USERNAME/crates.io-index" for GitHub fork
+
+crate:
+  store: "filesystem"
+  path: "/app/crates"
+
+frontend:
+  enabled: true
+  public: true
+EOF
+```
+
+### 6. Deploy Services
 
 ```bash
 # Start everything
@@ -195,7 +239,9 @@ sleep 45
 docker compose ps
 ```
 
-### 6. Create Admin User
+### 7. Create Admin User
+
+Once the services are running successfully:
 
 ```bash
 # Generate password hash
@@ -366,17 +412,24 @@ my-private-crate = { version = "1.0", registry = "myregistry" }
 
 2. **Database connection issues**
     - Ensure PostgreSQL is healthy: `docker compose logs postgres`
-    - Check environment variables in `.env`
-    - Verify database credentials in config
+    - Verify the password in config.yaml matches the one in .env: `grep POSTGRES_PASSWORD .env`
+    - Common error: "FATAL: password authentication failed for user 'meuse'" indicates a password mismatch
+    - Make sure environment variables are being passed correctly
+    - Try using a simple password temporarily for testing, then secure it later
 
 3. **Git index issues**
     - Ensure the index repository is properly cloned: `docker compose exec meuse ls -la /app/index`
     - Check git credentials and permissions
-    - Verify the repository URL in config
+    - Verify the repository URL in config matches your setup (local, GitHub or self-hosted)
 
 4. **Permission denied errors**
     - Check Docker volume permissions
     - Ensure the meuse user can write to mounted directories
+
+5. **Configuration syntax issues**
+    - The config.yaml file is sensitive to YAML syntax and secrets formatting
+    - For passwords, use: `password: "actual_password"` (with quotes)
+    - For environment variables in config.yaml, use: `password: !secret "${ENV_VAR_NAME}"`
 
 ## Security Considerations
 
