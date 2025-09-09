@@ -77,7 +77,20 @@ sed -i "s/PORT=.*/PORT=8080/" .env
 nano .env  # Change DOMAIN=localhost to your actual domain
 ```
 
-### 4. Set Up Git Index Repository
+### 4. Set Proper Directory Permissions
+
+```bash
+# The Meuse application runs as user:group 999:999 inside the Docker container
+# You must ensure the directories have proper ownership
+chown -R 999:999 ./index ./crates ./git-repos
+chmod -R 755 ./index ./crates ./git-repos
+
+# If you're using SELinux, you may also need to add proper context
+# For example, on RHEL/CentOS/Fedora:
+# chcon -Rt svirt_sandbox_file_t ./index ./crates ./git-repos
+```
+
+### 5. Set Up Git Index Repository
 
 Choose one of the following options:
 
@@ -206,7 +219,7 @@ cd ../
 The sparse protocol doesn't use Git, so you don't need to initialize a Git repository or create a bare clone.
 However, the directory structure must be maintained for compatibility with both protocols.
 
-### 5. Configure Git HTTP Backend
+### 6. Configure Git HTTP Backend
 
 The Git repository needs to be served via HTTP for Cargo to access it. The included Nginx configuration includes a setup
 for serving Git repositories, but requires additional packages:
@@ -245,7 +258,7 @@ location /git/ {
 }
 ```
 
-### 6. Update Configuration
+### 7. Update Configuration
 
 Make sure your config.yaml file has the correct database password that matches your .env file:
 
@@ -289,7 +302,7 @@ frontend:
 EOF
 ```
 
-### 7. Deploy Services
+### 8. Deploy Services
 
 ```bash
 # Start everything
@@ -302,7 +315,7 @@ sleep 45
 docker compose ps
 ```
 
-### 8. Create Admin User
+### 9. Create Admin User
 
 Once the services are running successfully:
 
@@ -388,11 +401,29 @@ frontend:
   public: true
 ```
 
-### 4. Setup Git Index Repository
+### 4. Set Proper Directory Permissions
+
+The Meuse application needs appropriate permissions to access and modify the crate and index directories:
+
+```bash
+# Determine which user will run Meuse
+# If running as a service, create a dedicated user
+sudo useradd -r meuse
+
+# Set ownership of directories
+sudo chown -R meuse:meuse /path/to/git/index
+sudo chown -R meuse:meuse /path/to/crates
+
+# Set appropriate permissions
+sudo chmod -R 755 /path/to/git/index
+sudo chmod -R 755 /path/to/crates
+```
+
+### 5. Setup Git Index Repository
 
 Follow the same Git index setup steps as in the Docker installation, choosing one of the three options.
 
-### 5. Configure Git HTTP Backend
+### 6. Configure Git HTTP Backend
 
 The Git repository needs to be served via HTTP for Cargo to access it. The included Nginx configuration includes a setup
 for serving Git repositories, but requires additional packages:
@@ -431,14 +462,14 @@ location /git/ {
 }
 ```
 
-### 6. Run Meuse
+### 7. Run Meuse
 
 ```bash
 # Run with the config file
 java -jar target/meuse.jar -c config.yaml
 ```
 
-### 7. Set Up Nginx as Reverse Proxy (Optional)
+### 8. Set Up Nginx as Reverse Proxy (Optional)
 
 Create an nginx configuration file:
 
@@ -533,6 +564,10 @@ my-private-crate = { version = "1.0", registry = "myregistry" }
 4. **Permission denied errors**
     - Check Docker volume permissions
     - Ensure the meuse user can write to mounted directories
+   - **Important**: The Meuse application runs as user:group 999:999 inside the container
+   - Set correct ownership on mounted volumes: `chown -R 999:999 ./index ./crates ./git-repos`
+   - If permission errors persist, you can add `user: "0:0"` to the meuse service in docker-compose.yml to run as root (
+     less secure)
 
 5. **Git HTTP backend issues**
     - Check if fcgiwrap is running: `systemctl status fcgiwrap`
@@ -647,3 +682,4 @@ To use the sparse protocol, prefix the index URL with `sparse+` in your Cargo co
 [registries.myregistry]
 index = "sparse+https://your-domain.com/index/"
 ```
+
