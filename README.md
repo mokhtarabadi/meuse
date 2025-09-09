@@ -182,7 +182,46 @@ git config http.uploadpack true
 cd ../..
 ```
 
-### 5. Update Configuration
+### 5. Configure Git HTTP Backend
+
+The Git repository needs to be served via HTTP for Cargo to access it. The included Nginx configuration includes a setup
+for serving Git repositories, but requires additional packages:
+
+```bash
+# If you're using the Docker setup, this is handled automatically in docker-compose.yml
+
+# For manual setup with Nginx, install the necessary packages
+sudo apt-get install -y git fcgiwrap spawn-fcgi nginx
+
+# Start fcgiwrap service
+sudo systemctl enable fcgiwrap
+sudo systemctl start fcgiwrap
+
+# Ensure proper permissions
+sudo chmod 755 /usr/lib/git-core/git-http-backend
+```
+
+Make sure your Nginx configuration includes the Git HTTP backend configuration:
+
+```nginx
+location /git/ {
+    # Disable request body limits
+    client_max_body_size 0;
+    
+    # Set git project root to your git-repos directory
+    alias /path/to/git-repos/;
+    
+    # Handle Git HTTP protocol
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME /usr/lib/git-core/git-http-backend;
+    fastcgi_param PATH_INFO $uri;
+    fastcgi_param GIT_PROJECT_ROOT /path/to/git-repos;
+    fastcgi_param GIT_HTTP_EXPORT_ALL "";
+    fastcgi_pass unix:/var/run/fcgiwrap.sock;
+}
+```
+
+### 6. Update Configuration
 
 Make sure your config.yaml file has the correct database password that matches your .env file:
 
@@ -212,7 +251,7 @@ metadata:
   type: "shell"
   path: "/app/index"
   target: "master"
-  url: "http://localhost:8080/git/index.git" # For self-hosted Git
+  url: "https://your-domain.com/git/index.git" # For self-hosted Git
   # Or use "file:///app/index" for local Git
   # Or use "https://github.com/YOUR_USERNAME/crates.io-index" for GitHub fork
 
@@ -226,7 +265,7 @@ frontend:
 EOF
 ```
 
-### 6. Deploy Services
+### 7. Deploy Services
 
 ```bash
 # Start everything
@@ -239,7 +278,7 @@ sleep 45
 docker compose ps
 ```
 
-### 7. Create Admin User
+### 8. Create Admin User
 
 Once the services are running successfully:
 
@@ -312,8 +351,9 @@ metadata:
   type: "shell"
   path: "/path/to/git/index"
   target: "master"
-  url: "file:///path/to/git/index"  # For local Git
-  # Or use your GitHub fork URL: "https://github.com/YOUR_USERNAME/crates.io-index"
+  url: "https://your-domain.com/git/index.git" # For self-hosted Git
+  # Or use "file:///path/to/git/index" for local Git
+  # Or use "https://github.com/YOUR_USERNAME/crates.io-index" for GitHub fork
 
 crate:
   store: "filesystem"
@@ -328,14 +368,53 @@ frontend:
 
 Follow the same Git index setup steps as in the Docker installation, choosing one of the three options.
 
-### 5. Run Meuse
+### 5. Configure Git HTTP Backend
+
+The Git repository needs to be served via HTTP for Cargo to access it. The included Nginx configuration includes a setup
+for serving Git repositories, but requires additional packages:
+
+```bash
+# If you're using the Docker setup, this is handled automatically in docker-compose.yml
+
+# For manual setup with Nginx, install the necessary packages
+sudo apt-get install -y git fcgiwrap spawn-fcgi nginx
+
+# Start fcgiwrap service
+sudo systemctl enable fcgiwrap
+sudo systemctl start fcgiwrap
+
+# Ensure proper permissions
+sudo chmod 755 /usr/lib/git-core/git-http-backend
+```
+
+Make sure your Nginx configuration includes the Git HTTP backend configuration:
+
+```nginx
+location /git/ {
+    # Disable request body limits
+    client_max_body_size 0;
+    
+    # Set git project root to your git-repos directory
+    alias /path/to/git-repos/;
+    
+    # Handle Git HTTP protocol
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME /usr/lib/git-core/git-http-backend;
+    fastcgi_param PATH_INFO $uri;
+    fastcgi_param GIT_PROJECT_ROOT /path/to/git-repos;
+    fastcgi_param GIT_HTTP_EXPORT_ALL "";
+    fastcgi_pass unix:/var/run/fcgiwrap.sock;
+}
+```
+
+### 6. Run Meuse
 
 ```bash
 # Run with the config file
 java -jar target/meuse.jar -c config.yaml
 ```
 
-### 6. Set Up Nginx as Reverse Proxy (Optional)
+### 7. Set Up Nginx as Reverse Proxy (Optional)
 
 Create an nginx configuration file:
 
@@ -426,7 +505,15 @@ my-private-crate = { version = "1.0", registry = "myregistry" }
     - Check Docker volume permissions
     - Ensure the meuse user can write to mounted directories
 
-5. **Configuration syntax issues**
+5. **Git HTTP backend issues**
+    - Check if fcgiwrap is running: `systemctl status fcgiwrap`
+    - Ensure git-http-backend is accessible: `ls -la /usr/lib/git-core/git-http-backend`
+    - Verify Nginx can access the Git repositories: `sudo -u www-data ls -la /path/to/git-repos`
+    - Test Git HTTP access: `curl -i http://localhost:8080/git/index.git/info/refs?service=git-upload-pack`
+    - Common error: 404 - This usually means Nginx can't find git-http-backend or fcgiwrap.sock
+    - Common error: 500 - Check Nginx error logs for issues with the Git backend
+
+6. **Configuration syntax issues**
     - The config.yaml file is sensitive to YAML syntax and secrets formatting
     - For passwords, use: `password: "actual_password"` (with quotes)
     - For environment variables in config.yaml, use: `password: !secret "${ENV_VAR_NAME}"`
