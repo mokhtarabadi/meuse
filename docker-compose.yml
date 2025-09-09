@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: meuse
       POSTGRES_USER: meuse
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-meuse_secure_password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -22,10 +22,14 @@ services:
     container_name: meuse-app
     environment:
       - MEUSE_CONFIGURATION=/app/config/config.yaml
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - MEUSE_FRONTEND_SECRET=${MEUSE_FRONTEND_SECRET}
+      - DOMAIN=${DOMAIN}
     volumes:
       - ./config:/app/config:ro
-      - meuse_crates:/app/crates
-      - meuse_index:/app/index
+      - ./crates:/app/crates
+      - ./index:/app/index
+      - ./git-repos:/app/git-repos
       - meuse_logs:/app/logs
     networks:
       - meuse_network
@@ -60,8 +64,6 @@ services:
 
 volumes:
   postgres_data:
-  meuse_crates:
-  meuse_index:
   meuse_logs:
 
 networks:

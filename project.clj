@@ -1,6 +1,6 @@
 (def slf4j-version "1.7.32")
 
-(defproject meuse "1.3.0"
+(defproject meuse "1.4.0"
   :description "A free private Rust registry"
   :url "https://github.com/mokhtarabadi/meuse"
   :license {:name "Eclipse Public License 2.0"}
