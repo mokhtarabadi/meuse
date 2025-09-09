@@ -45,9 +45,10 @@ A free, open-source private crate registry for Rust that implements the [alterna
 
 3. **Setup directories:**
     ```bash
-    mkdir -p config crates
+    mkdir -p config
     ```
-    Note: The `index` and `git-repos` directories are created automatically by the init service with proper permissions (UID 999).
+   Note: The `index` and `crates` directories are created automatically by the init service with proper permissions (UID
+   999).
 
 4. **Initialize registry (automated):**
     ```bash
