@@ -12,7 +12,15 @@ Deploy your private Rust crate registry behind a secure connection in just 5 min
 This setup uses the pre-built Docker image from Docker Hub:
 
 - **Image:** `mokhtarabadi/meuse:latest`
+- **Version:** `mokhtarabadi/meuse:1.4.0` (with Git permission fixes)
 - **Registry:** https://hub.docker.com/r/mokhtarabadi/meuse
+
+### ✨ NEW in v1.4.0: Complete Git Integration
+
+- **✅ Git permission issues fixed** - No more container ownership errors
+- **✅ Multi-stage optimized build** - Smaller, faster images
+- **✅ Environment variable support** - Secure configuration
+- **✅ Production-ready** - Complete end-to-end functionality
 
 ## 🎯 One-Command Setup
 

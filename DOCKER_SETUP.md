@@ -9,7 +9,7 @@ This deployment uses the official Meuse Docker image:
 
 - **Docker Hub:** https://hub.docker.com/r/mokhtarabadi/meuse
 - **Latest:** `mokhtarabadi/meuse:latest`
-- **Version 1.3.0:** `mokhtarabadi/meuse:1.3.0`
+- **Version 1.4.0:** `mokhtarabadi/meuse:1.4.0`
 
 The image includes:
 
@@ -18,6 +18,14 @@ The image includes:
 - ✅ Git for index management
 - ✅ Health check endpoints
 - ✅ Optimized for production use
+
+### ✨ NEW in v1.4.0: Major Improvements
+
+- **✅ Git Index Integration Fixed** - Complete end-to-end workflow now works
+- **✅ Container Permissions Resolved** - No more ownership/permission errors
+- **✅ Multi-stage Docker Build** - Optimized, production-ready images
+- **✅ Environment Variable Support** - Secure configuration management
+- **✅ Complete Cargo Compatibility** - Full publish and dependency resolution
 
 ## Table of Contents
 
@@ -162,7 +170,7 @@ The main configuration is in `config/config.yaml`. Key sections to review:
 ```yaml
 database:
   user: "meuse"
-  password: !envsecret "POSTGRES_PASSWORD"
+  password: !secret "${POSTGRES_PASSWORD}"
   host: "postgres"
   port: 5432
   name: "meuse"

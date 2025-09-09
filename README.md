@@ -14,21 +14,28 @@ Documentation is available at https://meuse.mokhtarabadi.fr/
 The Meuse Docker image is available on Docker Hub:
 
 - **Latest:** `mokhtarabadi/meuse:latest`
-- **Versioned:** `mokhtarabadi/meuse:1.3.0`
+- **Versioned:** `mokhtarabadi/meuse:1.4.0`
 
 ```bash
 # Pull the latest image
 docker pull mokhtarabadi/meuse:latest
 
 # Or pull a specific version
-docker pull mokhtarabadi/meuse:1.3.0
+docker pull mokhtarabadi/meuse:1.4.0
 ```
 
 ## 🚀 Quick Docker Setup
 
 Deploy your private Rust registry in 5 minutes!
 
-### 🆕 NEW: Three Deployment Options
+### ✨ NEW in v1.4.0: Git Permission Fixes
+
+- **✅ Fixed Git Index Integration** - No more permission errors
+- **✅ Complete Cargo Workflow** - Publish and consume crates seamlessly
+- **✅ Multi-stage Docker Build** - Optimized production image
+- **✅ Environment Variable Support** - Secure configuration management
+
+### 🆕 Three Deployment Options
 
 - **Option 1:** Local Git repository (limited to local machine)
 - **Option 2:** GitHub fork method (⚠️ metadata becomes public)
@@ -36,12 +43,13 @@ Deploy your private Rust registry in 5 minutes!
 
 ### 🔒 **Fully Private Option** (Recommended)
 
-Our new **self-hosted private Git** option keeps all your crate metadata completely private on your server:
+Our **self-hosted private Git** option keeps all your crate metadata completely private on your server:
 
 ✅ **No external dependencies** - everything runs on your server  
 ✅ **Completely private** - metadata never leaves your infrastructure  
 ✅ **Standard Git protocol** - works with all Cargo clients  
 ✅ **Automatic setup** - one script configures everything
+✅ **Git permissions fixed** - No more container ownership issues
 
 ### One-Command Setup
 
@@ -68,6 +76,9 @@ docker compose up -d
 - [x] crates.io mirroring.
 - [x] Multiple backends for crates files: filesystem, S3.
 - [x] Multiple ways of managing the Git crate Index: git command, JGit.
+- [x] **NEW:** Fixed Git container permissions and ownership issues.
+- [x] **NEW:** Environment variable configuration support.
+- [x] **NEW:** Production-ready multi-stage Docker builds.
 - [x] Manage categories.
 - [x] Manage users, roles, and tokens.
 - [x] Manage crates.

@@ -178,9 +178,12 @@ services:
     container_name: meuse-app
     environment:
       - MEUSE_CONFIGURATION=/app/config/config.yaml
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - MEUSE_FRONTEND_SECRET=${MEUSE_FRONTEND_SECRET}
+      - DOMAIN=${DOMAIN}
     volumes:
       - ./config:/app/config:ro
-      - meuse_crates:/app/crates
+      - ./crates:/app/crates
 EOF
 
 if [[ "$USE_LOCAL_GIT" == "true" ]]; then
@@ -242,7 +245,6 @@ cat >> docker-compose.yml << 'EOF'
 
 volumes:
   postgres_data:
-  meuse_crates:
   meuse_logs:
 
 networks:
