@@ -1,4 +1,21 @@
 services:
+  init:
+    image: alpine/git:latest
+    container_name: meuse-init
+    environment:
+      - MEUSE_INIT_MODE=${MEUSE_INIT_MODE:-local}
+      - GITHUB_REPO_URL=${GITHUB_REPO_URL}
+    volumes:
+      - meuse_index:/app/index
+      - meuse_git_repos:/app/git-repos
+      - ./scripts/init.sh:/app/init.sh
+    networks:
+      - meuse_network
+    profiles:
+      - init
+    entrypoint: [ ]
+    command: [ "/bin/sh", "-c", "apk add --no-cache bash && bash /app/init.sh" ]
+
   postgres:
     image: postgres:14.4
     container_name: meuse-postgres
@@ -26,10 +43,9 @@ services:
       - MEUSE_FRONTEND_SECRET=${MEUSE_FRONTEND_SECRET}
       - DOMAIN=${DOMAIN}
     volumes:
+      - meuse_index:/app/index:ro
       - ./config:/app/config:ro
-      - ./crates:/app/crates
-      - ./index:/app/index
-      - ./git-repos:/app/git-repos
+      - meuse_crates:/app/crates
       - meuse_logs:/app/logs
     networks:
       - meuse_network
@@ -49,8 +65,8 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - meuse_logs:/var/log/nginx
-      - ./git-repos:/git-repos:ro
-      - ./index:/app/index:ro
+      - meuse_git_repos:/git-repos:ro
+      - meuse_index:/app/index:ro
     ports:
       - "8080:80"
     networks:
@@ -72,6 +88,9 @@ services:
 volumes:
   postgres_data:
   meuse_logs:
+  meuse_index:
+  meuse_git_repos:
+  meuse_crates:
 
 networks:
   meuse_network:
