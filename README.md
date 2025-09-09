@@ -90,7 +90,28 @@ chmod -R 755 ./index ./crates ./git-repos
 # chcon -Rt svirt_sandbox_file_t ./index ./crates ./git-repos
 ```
 
-### 5. Set Up Git Index Repository
+### 5. Configure Git for Meuse
+
+Modern Git versions require explicit pull strategy configuration, which can cause issues with Meuse:
+
+```bash
+# Configure Git globally for the container
+cat > git-config-script.sh << 'EOF'
+#!/bin/bash
+# This script will be run inside the container to configure Git
+git config --global pull.rebase false
+git config --global user.name "Meuse Registry"
+git config --global user.email "registry@example.com"
+git config --global init.defaultBranch master
+EOF
+
+chmod +x git-config-script.sh
+
+# Update the docker-compose.yml to use this script
+sed -i '/image: mokhtarabadi\/meuse:latest/a\    volumes:\n      - ./git-config-script.sh:/docker-entrypoint.d/git-config.sh:ro' docker-compose.yml
+```
+
+### 6. Set Up Git Index Repository
 
 Choose one of the following options:
 
@@ -219,7 +240,7 @@ cd ../
 The sparse protocol doesn't use Git, so you don't need to initialize a Git repository or create a bare clone.
 However, the directory structure must be maintained for compatibility with both protocols.
 
-### 6. Configure Git HTTP Backend
+### 7. Configure Git HTTP Backend
 
 The Git repository needs to be served via HTTP for Cargo to access it. The included Nginx configuration includes a setup
 for serving Git repositories, but requires additional packages:
@@ -258,7 +279,7 @@ location /git/ {
 }
 ```
 
-### 7. Update Configuration
+### 8. Update Configuration
 
 Make sure your config.yaml file has the correct database password that matches your .env file:
 
@@ -302,7 +323,7 @@ frontend:
 EOF
 ```
 
-### 8. Deploy Services
+### 9. Deploy Services
 
 ```bash
 # Start everything
@@ -315,7 +336,7 @@ sleep 45
 docker compose ps
 ```
 
-### 9. Create Admin User
+### 10. Create Admin User
 
 Once the services are running successfully:
 
@@ -577,14 +598,28 @@ my-private-crate = { version = "1.0", registry = "myregistry" }
     - Common error: 404 - This usually means Nginx can't find git-http-backend or fcgiwrap.sock
     - Common error: 500 - Check Nginx error logs for issues with the Git backend
 
-6. **Sparse protocol issues**
+6. **Git pull strategy errors**
+    - Error: `Pulling without specifying how to reconcile divergent branches is discouraged` or
+      `'master' does not appear to be a git repository`
+    - Cause: Git requires explicit pull strategy configuration for newer versions
+    - Solution: Configure Git globally inside the container:
+    ```bash
+    docker compose exec meuse git config --global pull.rebase false
+    docker compose exec meuse git config --global user.name "Meuse Registry"
+    docker compose exec meuse git config --global user.email "registry@example.com"
+    ```
+    - Alternatively, set up a custom entrypoint script that configures Git before starting Meuse
+    - For persistent configuration, use a volume to store Git configuration
+    - Consider using the sparse protocol to avoid Git issues entirely
+
+7. **Sparse protocol issues**
     - Verify index directory structure: Ensure the index has the correct structure with 1, 2, 3 directories
     - Check Nginx configuration: Make sure `/index/` location is properly configured to serve files
     - Test config file access: `curl -i http://localhost:8080/index/config.json`
     - Verify Cargo version: Sparse protocol requires Cargo 1.68+ (`cargo --version` to check)
     - For 404 errors: Make sure your index directory is correctly mounted in the Nginx container
 
-7. **Configuration syntax issues**
+8. **Configuration syntax issues**
     - The config.yaml file is sensitive to YAML syntax and secrets formatting
     - For passwords, use: `password: "actual_password"` (with quotes)
     - For environment variables in config.yaml, use: `password: !secret "${ENV_VAR_NAME}"`
