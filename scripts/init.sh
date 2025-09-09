@@ -110,7 +110,9 @@ EOF
     ;;
 esac
 
-# Ensure proper ownership
-chown -R 999:999 /app/index /app/git-repos 2>/dev/null || true
+# Ensure required directories exist and proper ownership
+# Create crates and logs directories so volumes mounted to the init container are initialized
+mkdir -p /app/crates /app/logs 2>/dev/null || true
+chown -R 999:999 /app/index /app/git-repos /app/crates /app/logs 2>/dev/null || true
 
 echo "Initialization completed successfully!"
