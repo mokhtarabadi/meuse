@@ -2,6 +2,7 @@
   "Implements the Cargo sparse registry protocol."
   (:require [meuse.crate :as crate]
             [meuse.db.public.crate :as public-crate]
+            [meuse.db.actions.crate :as crate-db]
             [meuse.db.public.category :as public-category]
             [meuse.path :as path]
             [meuse.registry :as registry]
@@ -31,17 +32,20 @@
 (defn get-crate-index
   "Return the index file for a crate by its name."
   [request crate-name]
-  (let [db (:database request)
-        versions (public-crate/get-crate-versions db {:name crate-name})]
-    (if (seq versions)
-      (let [index-content (string/join "\n" (map json/generate-string versions))]
+  (let [db (:database request)]
+    (try
+      (let [versions (crate-db/get-crate-and-versions db crate-name)
+            index-content (string/join "\n" (map json/generate-string versions))]
         (-> (ring/response index-content)
             (ring/content-type "application/json")
             ;; Add caching headers
             (ring/header "Cache-Control" "public, max-age=3600")
-            (ring/header "ETag" (str "W/\"" (hash index-content) "\"")))
+            (ring/header "ETag" (str "W/\"" (hash index-content) "\""))))
+      (catch Exception e
+        (log/error e "Error getting crate index for" crate-name)
         (ring/not-found {:status "not_found"
-                         :error (str "Crate '" crate-name "' not found")}))))
+                         :error (str "Crate '" crate-name "' not found")})))))
+
 
 (defn- extract-crate-name
   "Extract crate name from request path and directory structure."

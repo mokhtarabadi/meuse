@@ -13,7 +13,7 @@
    #"/2/[a-z0-9]{2}" {:get ::index-two-char}
    #"/3/[a-z0-9]/[a-z0-9]{3}" {:get ::index-three-char}
    #"/[a-z0-9]{2}/[a-z0-9]{2}/[a-z0-9_-]+" {:get ::index-crate}
-   #"/"? {:get ::search}
+   #"/?.?" {:get ::search}
    ["/" mac/crate-name-path #"/owners/?"] {:put ::add-owner}
    ["/" mac/crate-name-path #"/owners/?"] {:delete ::remove-owner}
    ["/" mac/crate-name-path #"/owners/?"] {:get ::list-owners}
