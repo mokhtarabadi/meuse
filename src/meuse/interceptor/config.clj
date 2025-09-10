@@ -15,4 +15,5 @@
                             :config
                             {:crate crate-config
                              :metadata metadata-config}
+                            :metadata-path (:path metadata-config)
                             :registry-config registry-config)))}))

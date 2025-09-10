@@ -10,7 +10,7 @@ database:
 # HTTP server configuration
 http:
   address: "0.0.0.0"  # Listen on all interfaces for Docker
-  port: 8855
+  port: !envvar MEUSE_PORT
 
 # Logging configuration
 logging:

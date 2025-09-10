@@ -161,11 +161,10 @@ For remote Git repositories:
 index = "https://github.com/yourusername/crates-index.git"
 ```
 
-##### Option 2: Using Sparse Protocol (Not Currently Supported by Meuse)
+##### Option 2: Using Sparse Protocol
 
-> Note: Meuse does not currently fully implement the sparse protocol. This section is for reference only.
-
-The sparse protocol is faster and more efficient as it doesn't require a full Git clone:
+The sparse protocol is faster and more efficient as it doesn't require a full Git clone. To use it, configure your
+`~/.cargo/config.toml` as follows:
 
 ```toml
 [registries.meuse]
@@ -259,10 +258,10 @@ The following environment variables can be configured in the `.env` file:
 - `POSTGRES_PASSWORD`: PostgreSQL password
 - `POSTGRES_DB`: PostgreSQL database name
 - `POSTGRES_HOST`: PostgreSQL host (usually 'postgres' in Docker Compose)
-- `POSTGRES_PORT`: PostgreSQL port (usually 5432)
 
-**Meuse Frontend:**
+**Meuse Server:**
 
+- `MEUSE_PORT`: HTTP port for Meuse server (default: 8855)
 - `MEUSE_FRONTEND_SECRET`: Secret for the frontend (at least 32 characters)
 
 **Users:**
@@ -367,7 +366,7 @@ Also update the Git repository's `config.json` to use HTTPS URLs:
     - If publishing fails with Git errors but says the crate exists, it may have actually succeeded
 - **Database Connection Errors**: Verify PostgreSQL is running and credentials are correct
 - **SSL/TLS Certificate Issues**: When using a proxy with SSL, ensure certificates are valid and trusted by your client
-- **Sparse Protocol Problems**: Meuse currently only fully supports the Git protocol, not sparse protocol
+- **Sparse Protocol**: Meuse supports the sparse protocol which avoids the need for a Git repository clone
 - **Proxy Configuration**: Check that your proxy is correctly forwarding all necessary headers to Meuse
 
 ### Common Error Messages

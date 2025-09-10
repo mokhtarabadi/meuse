@@ -21,6 +21,16 @@
             [mount.core :refer [defstate]]
             [ring.adapter.jetty :as jetty]))
 
+(defn base-url
+  "Get the base URL for the API from the request."
+  [request]
+  (let [scheme (or (get-in request [:headers "x-forwarded-proto"]) "http")
+        host (or (get-in request [:headers "x-forwarded-host"]) 
+                 (get-in request [:headers "host"]) 
+                 (str (:server-name request) ":" (:server-port request)))
+        base-path (or (get-in request [:headers "x-forwarded-prefix"]) "")]
+    (str scheme "://" host base-path)))
+
 (defn interceptor-handler
   [crate-config metadata-config token-db user-db key-spec public-frontend]
   (let [interceptors
