@@ -42,7 +42,7 @@
     [:div {:class "col-12 center index-links"}
      [:a {:class "btn btn-secondary btn-lg" :role "button" :href "https://meuse.mcorbin.fr/"}
       "Documentation"]
-     [:a {:class "btn btn-secondary btn-lg" :role "button" :href "https://github.com/mokhtarabadi/meuse"}
+     [:a {:class "btn btn-secondary btn-lg" :role "button" :href "https://github.com/mcorbin/meuse"}
       "Github"]]]
 
    [:div {:class "row index-stats-row"}
@@ -76,11 +76,4 @@
 
    [:div {:class "row"}
     (last-updated-crates crate-version-db)
-    (top-downloaded-crates crate-version-db)]
-
-   [:div {:class "row"}
-    [:div {:class "col-md-6"}
-     [:h2 "Open source"]
-     [:p "Meuse is open source and available on Github. Contributions are welcomed."]
-     [:a {:class "btn btn-secondary btn-lg" :role "button" :href "https://github.com/mokhtarabadi/meuse"}
-      "View on Github"]]]])
+    (top-downloaded-crates crate-version-db)]])

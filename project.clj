@@ -1,8 +1,8 @@
 (def slf4j-version "1.7.32")
 
-(defproject meuse "1.5.0"
+(defproject meuse "1.3.0"
   :description "A free private Rust registry"
-  :url "https://github.com/mokhtarabadi/meuse"
+  :url "https://github.com/mcorbin/meuse"
   :license {:name "Eclipse Public License 2.0"}
   :maintainer {:name "Mathieu Corbin"
                :website "https://meuse.mcorbin.fr"}
@@ -13,7 +13,6 @@
                  [bidi "2.1.6"]
                  [byte-streams "0.2.4"]
                  [cheshire "5.11.0"]
-                 [clj-commons/clj-yaml "1.0.26"]
                  [clj-http "3.12.3"]
                  [clj-time "0.15.2"]
                  [com.amazonaws/aws-java-sdk-core "1.12.276"]
@@ -32,7 +31,6 @@
                  [honeysql "1.0.461"]
                  [io.micrometer/micrometer-registry-prometheus "1.9.2"]
                  [less-awful-ssl "1.0.6"]
-                 [markdown-clj "1.11.4"]
                  [mount "0.1.16"]
                  [org.slf4j/slf4j-api                           ~slf4j-version]
                  [org.slf4j/log4j-over-slf4j                    ~slf4j-version]

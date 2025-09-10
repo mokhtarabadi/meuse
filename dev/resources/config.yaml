@@ -1,20 +1,14 @@
-# PostgreSQL database configuration
 database:
   user: "meuse"
-  password: "meuse_password"
-  host: "localhost"
+  password: !secret "meuse"
+  host: "127.0.0.1"
   port: 5432
   name: "meuse"
-  max-pool-size: 10
-
-# HTTP server configuration
 http:
-  address: "0.0.0.0"  # Listen on all interfaces for Docker
+  address: 127.0.0.1
   port: 8855
-
-# Logging configuration
 logging:
-  level: info
+  level: debug
   console:
     encoder: json
   overrides:
@@ -23,44 +17,19 @@ logging:
     org.apache.http: error
     io.netty.buffer.PoolThreadCache: error
     org.eclipse.jgit.internal.storage.file.FileSnapshot: info
-
-# Git index configuration - Using JGit with credentials
+    com.amazonaws.auth.AWS4Signer: warn
+    com.amazonaws.retry.ClockSkewAdjuster: warn
+    com.amazonaws.request: warn
+    com.amazonaws.requestId: warn
 metadata:
-  type: "jgit"  # Use JGit instead of shell Git
-  path: "/home/mohammad/Develop/Projects/meuse/data/index"
-  target: "master"
-  url: "http://localhost:8080/index.git"
-  username: "git"
-  password: "gitpassword"
-
-# Crate storage configuration
+  type: "shell"
+  path: "/home/mcorbin/prog/rust/testregistry"
+  target: "origin/master"
+  url: "https://github.com/mcorbin/testregistry"
 crate:
-  store: filesystem
-  path: "/home/mohammad/Develop/Projects/meuse/data/crates"
-
-# Frontend configuration
+  store: "filesystem"
+  path: "/home/mcorbin/prog/rust/crates"
 frontend:
   enabled: true
+  secret: !secret uJo8QrRAANokteN_xVxpP75lc_A5Sw6t
   public: false
-  secret: "abcdef1234567890abcdef1234567890abcdef12"
-
-# Initial users configuration
-initial-users:
-  # Admin user
-  - name: "admin"
-    password: "admin_password"
-    description: "Administrator account"
-    role: "admin"
-    active: true
-
-  # Technical user
-  - name: "tech"
-    password: "tech_password"
-    description: "Technical account for CI/CD"
-    role: "tech"
-
-  # Read-only user
-  - name: "readonly"
-    password: "readonly_password"
-    description: "Read-only account"
-    role: "read-only"

@@ -51,7 +51,7 @@
   [:footer {:class "container"}
    [:p
     [:a {:href "https://meuse.mcorbin.fr/"} "Documentation"] " · "
-    [:a {:href "https://github.com/mokhtarabadi/meuse"} "Github"] " · "
+    [:a {:href "https://github.com/mcorbin/meuse"} "Github"] " · "
     "Made by " [:a {:href "https://mcorbin.fr"} "mcorbin"]]])
 
 (defn html

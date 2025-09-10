@@ -13,44 +13,4 @@ pom.xml.asc
 test/resources/tmp
 dev/resources/config.yaml
 *.iml
-
-# Environment files
-.env
-!.env.example
-
-# Logs
-logs/
-*.log
-
-# Config backups
-*.bak
-
-# IDE files
 .idea/
-.vscode/
-*.swp
-*.swo
-
-# Development tool directories
-.clj-kondo/
-.lsp/
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Docker volumes data
-data/
-
-# Temporary files
-*.tmp
-*.temp
-
-# Local configuration files (should not be committed)
-# config.json
-# config/config.yaml
-
-# Local temporary registry data
-temp-registry/
-local-crate-index/
-firebender.json
