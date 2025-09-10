@@ -43,8 +43,8 @@ Meuse uses a Git repository to store metadata about crates. For this setup, we'l
 
 ```bash
 # Create the index directory structure
-mkdir -p ./index
-cd ./index
+mkdir -p ./data/index
+cd ./data/index
 
 # Initialize Git repository
 git init
@@ -52,6 +52,10 @@ git init
 # Configure Git user for the repository
 git config user.email "registry@meuse.local"
 git config user.name "Meuse Registry"
+
+# Set the branch name to 'master' (REQUIRED by Meuse)
+# Meuse specifically looks for the 'master' branch, other branch names will cause errors
+git branch -M master
 
 # Create the config.json file for Cargo
 cat > config.json << EOF
@@ -66,8 +70,11 @@ git add config.json
 git commit -m "Initial commit with registry configuration"
 
 # Return to the main directory
-cd ..
+cd ../..
 ```
+
+> **Important**: Meuse requires the Git repository to use the `master` branch. Using any other branch name will cause
+> errors when publishing crates.
 
 #### 3. Start the Services
 
@@ -138,13 +145,13 @@ curl --header "Content-Type: application/json" --request DELETE \
 
 Cargo supports multiple registry protocols. Here are different ways to configure your registry:
 
-##### Option 1: Using Git Protocol (Traditional)
+##### Option 1: Using Git Protocol (Recommended for Meuse)
 
-Add the registry to your `~/.cargo/config.toml`:
+Add the registry to your `~/.cargo/config.toml` with a file path to your local Git index:
 
 ```toml
 [registries.meuse]
-index = "file:///path/to/your/index"
+index = "file:///path/to/meuse/data/index"
 ```
 
 For remote Git repositories:
@@ -154,14 +161,16 @@ For remote Git repositories:
 index = "https://github.com/yourusername/crates-index.git"
 ```
 
-##### Option 2: Using Sparse Protocol (Recommended)
+##### Option 2: Using Sparse Protocol (Not Currently Supported by Meuse)
+
+> Note: Meuse does not currently fully implement the sparse protocol. This section is for reference only.
 
 The sparse protocol is faster and more efficient as it doesn't require a full Git clone:
 
 ```toml
 [registries.meuse]
 protocol = "sparse"
-index = "http://localhost:8855/api/v1/index"
+index = "sparse+http://localhost:8855/api/v1/crates/"
 ```
 
 With HTTPS (if you have a proxy in front of Meuse):
@@ -169,7 +178,7 @@ With HTTPS (if you have a proxy in front of Meuse):
 ```toml
 [registries.meuse]
 protocol = "sparse"
-index = "https://your-domain.com/api/v1/index"
+index = "sparse+https://your-domain.com/api/v1/crates/"
 ```
 
 Add your token to `~/.cargo/credentials.toml`:
@@ -208,7 +217,7 @@ replace-with = "meuse"
 registry = "https://registry.your-domain.com/api/v1/index"
 # Or for sparse protocol:
 # protocol = "sparse"
-# registry = "https://registry.your-domain.com/api/v1/index"
+# registry = "sparse+https://registry.your-domain.com/api/v1/crates/"
 ```
 
 ### User Roles and Permissions
@@ -231,12 +240,12 @@ Meuse provides APIs for:
 
 ### Volumes
 
-The following persistent volumes are created:
+The following data directories and volumes are used:
 
-- `meuse_postgres_data`: PostgreSQL database files
-- `meuse_crates_data`: Rust crate files
-- `meuse_git_index`: Git repository index
-- `meuse_logs`: Application logs
+- PostgreSQL data: Uses a named volume `postgres_data`
+- Crates data: `./data/crates` - Stores the actual crate files
+- Index data: `./data/index` - Git repository with crate metadata
+- Logs: `./data/logs` - Application logs
 
 ## Advanced Configuration
 
@@ -337,7 +346,7 @@ With this setup, update your Cargo configuration to use HTTPS:
 ```toml
 [registries.meuse]
 protocol = "sparse"  # Or use Git protocol
-index = "https://registry.your-domain.com/api/v1/index"
+index = "sparse+https://registry.your-domain.com/api/v1/crates/"
 ```
 
 Also update the Git repository's `config.json` to use HTTPS URLs:
@@ -353,9 +362,12 @@ Also update the Git repository's `config.json` to use HTTPS URLs:
 
 - **Authentication Issues**: Ensure your token is valid and not expired
 - **Git Access Problems**: Check Git configuration and permissions in the container
+    - Verify the Git repository uses the `master` branch
+    - If you see errors about 'master' not being a Git repository, check that the index directory is properly mounted
+    - If publishing fails with Git errors but says the crate exists, it may have actually succeeded
 - **Database Connection Errors**: Verify PostgreSQL is running and credentials are correct
 - **SSL/TLS Certificate Issues**: When using a proxy with SSL, ensure certificates are valid and trusted by your client
-- **Sparse Protocol Problems**: If sparse protocol isn't working, try using traditional Git protocol as a fallback
+- **Sparse Protocol Problems**: Meuse currently only fully supports the Git protocol, not sparse protocol
 - **Proxy Configuration**: Check that your proxy is correctly forwarding all necessary headers to Meuse
 
 ### Common Error Messages

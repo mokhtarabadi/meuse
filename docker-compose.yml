@@ -16,8 +16,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    ports:
-      - "5432:5432"
     networks:
       - meuse-network
 
@@ -32,9 +30,9 @@ services:
         condition: service_healthy
     volumes:
       - ./config:/app/config:ro
-      - crates_data:/app/crates
-      - git_index:/app/index
-      - meuse_logs:/app/logs
+      - ./data/crates:/app/crates
+      - ./data/index:/app/index
+      - ./data/logs:/app/logs
     environment:
       MEUSE_CONFIGURATION: /app/config/config.yaml
       # Database
@@ -66,12 +64,6 @@ services:
 volumes:
   postgres_data:
     name: meuse_postgres_data
-  crates_data:
-    name: meuse_crates_data
-  git_index:
-    name: meuse_git_index
-  meuse_logs:
-    name: meuse_logs
 
 networks:
   meuse-network:

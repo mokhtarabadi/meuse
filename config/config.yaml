@@ -3,7 +3,7 @@ database:
   user: !envvar POSTGRES_USER
   password: !envvar POSTGRES_PASSWORD
   host: !envvar POSTGRES_HOST
-  port: !envvar POSTGRES_PORT
+  port: 5432
   name: !envvar POSTGRES_DB
   max-pool-size: 10
 
@@ -17,6 +17,18 @@ logging:
   level: info
   console:
     encoder: json
+  appenders:
+    - type: file
+      encoder: json
+      file: "/app/logs/meuse.log"
+      rolling-policy:
+        type: fixed-window
+        pattern: "/app/logs/meuse.%i.log.gz"
+        min-index: 1
+        max-index: 5
+      triggering-policy:
+        type: size-based
+        max-size: 50MB
   overrides:
     org.eclipse.jetty: info
     com.zaxxer.hikari.pool.HikariPool: info
