@@ -10,7 +10,8 @@ Meuse is configured through a YAML file. Meuse uses [yummy](https://github.com/e
 
 The list of available parsers can be found in the yummy [README](https://github.com/exoscale/yummy#additional-yaml-tags).
 
-Secrets can be loaded using the special `!secret` or `!envsecret` (to read a secret from an environment variable) tags. These tags will indicate to Meuse that the value is a secret and extra security measures will be added to the variable.
+Secrets can be loaded using the special `!secret` or `!envvar` (to read a secret from an environment variable) tags.
+These tags will indicate to Meuse that the value is a secret and extra security measures will be added to the variable.
 
 Here is a commented example of a Meuse configuration:
 
