@@ -31,6 +31,10 @@ logs/
 *.swp
 *.swo
 
+# Development tool directories
+.clj-kondo/
+.lsp/
+
 # OS files
 .DS_Store
 Thumbs.db
@@ -50,4 +54,3 @@ data/
 temp-registry/
 local-crate-index/
 firebender.json
-.buildcache/

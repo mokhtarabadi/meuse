@@ -24,12 +24,14 @@ logging:
     io.netty.buffer.PoolThreadCache: error
     org.eclipse.jgit.internal.storage.file.FileSnapshot: info
 
-# Git index configuration
+# Git index configuration - Using JGit with credentials from environment
 metadata:
-  type: "shell"  # Use shell Git for local repository
+  type: "jgit"  # Use JGit instead of shell Git
   path: "./data/index"
   target: "master"
-  url: "file://./data/index"
+  url: "http://git-server/index.git"
+  username: !envvar GIT_SERVER_USER
+  password: !envvar GIT_SERVER_PASSWORD
 
 # Crate storage configuration
 crate:

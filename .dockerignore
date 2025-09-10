@@ -17,6 +17,10 @@ logs/
 *.swo
 *~
 
+# Development tool directories
+.clj-kondo/
+.lsp/
+
 # Temporary files
 *.tmp
 *.temp
@@ -42,4 +46,3 @@ test/
 
 # Local data directories
 data/
-.buildcache/

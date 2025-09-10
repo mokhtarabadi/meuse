@@ -1,170 +1,109 @@
 # Meuse - Private Rust Registry
 
-Meuse is a registry implementation for the [Rust](https://www.rust-lang.org) programming language. It implements
-the [alternative registries](https://github.com/rust-lang/rfcs/blob/master/text/2141-alternative-registries.md) RFC
-and [API](https://doc.rust-lang.org/cargo/reference/registries.html), and also exposes an API to manage users, crates,
-tokens and categories. Meuse can store the crates binary files in various backends (filesystem, S3...).
+[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
+[![Clojure](https://img.shields.io/badge/Clojure-%23Clojure.svg?style=for-the-badge&logo=Clojure&logoColor=Clojure)](https://clojure.org)
+[![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://rust-lang.org)
 
-It can also be used as a mirror for `crates.io`.
+Meuse is a **production-ready private Rust registry** that implements the [alternative registries RFC](https://github.com/rust-lang/rfcs/blob/master/text/2141-alternative-registries.md) and supports both **Git protocol** and **Sparse protocol** for maximum compatibility and performance.
 
-## Quick Start with Docker Compose
+## ✨ Features
+
+- 🚀 **Sparse Protocol Support** - Fast, efficient crate discovery without Git clones
+- 🔐 **Git Protocol Support** - Full compatibility with traditional Git-based registries
+- 🐳 **Docker Ready** - Complete containerized setup with PostgreSQL and Git server
+- 🔒 **Authentication & Authorization** - Token-based auth with role-based permissions
+- 📊 **Web Frontend** - User-friendly interface for crate management
+- 📈 **Statistics & Monitoring** - Built-in metrics and health checks
+- 🔄 **Mirroring Support** - Can mirror crates.io for offline usage
+- ☁️ **Multiple Storage Backends** - Filesystem and S3 support
+- 🏗️ **Production Ready** - Comprehensive logging, health checks, and monitoring
+
+## 🏃‍♂️ Quick Start
 
 ### Prerequisites
 
-- Docker and Docker Compose installed
-- Git installed locally
+- Docker & Docker Compose
+- Git (for local development)
 
-### Setup Steps
-
-#### 1. Set Up Environment Variables
-
-Copy the example environment file and customize it with your settings:
+### 1. Clone and Setup
 
 ```bash
+git clone <repository-url>
+cd meuse
 cp .env.example .env
 ```
 
-Edit the `.env` file to set your own passwords and configuration values:
+### 2. Configure Environment
+
+Edit `.env` with your settings:
 
 ```bash
-# Update passwords (at minimum)
-vi .env   # or use your preferred editor
+# Essential settings to customize:
+POSTGRES_PASSWORD=your_secure_db_password
+MEUSE_FRONTEND_SECRET=your_32_char_random_string
+ADMIN_PASSWORD=your_admin_password
+GIT_SERVER_PASSWORD=your_git_server_password
 ```
 
-Important variables to customize:
-
-- `POSTGRES_PASSWORD`: Database password
-- `MEUSE_FRONTEND_SECRET`: Secret for the frontend (min 32 chars)
-- `ADMIN_PASSWORD`, `TECH_PASSWORD`, `READONLY_PASSWORD`: User passwords
-
-#### 2. Prepare the Git Index Repository
-
-Meuse uses a Git repository to store metadata about crates. For this setup, we'll create a local Git repository:
+### 3. Launch Services
 
 ```bash
-# Create the index directory structure
-mkdir -p ./data/index
-cd ./data/index
-
-# Initialize Git repository
-git init
-
-# Configure Git user for the repository
-git config user.email "registry@meuse.local"
-git config user.name "Meuse Registry"
-
-# Set the branch name to 'master' (REQUIRED by Meuse)
-# Meuse specifically looks for the 'master' branch, other branch names will cause errors
-git branch -M master
-
-# Create the config.json file for Cargo
-cat > config.json << EOF
-{
-    "dl": "http://localhost:8855/api/v1/crates",
-    "api": "http://localhost:8855"
-}
-EOF
-
-# Add and commit the config file
-git add config.json
-git commit -m "Initial commit with registry configuration"
-
-# Return to the main directory
-cd ../..
-```
-
-> **Important**: Meuse requires the Git repository to use the `master` branch. Using any other branch name will cause
-> errors when publishing crates.
-
-#### 3. Start the Services
-
-```bash
-# Start the services in detached mode
 docker-compose up -d
-
-# Check logs
-docker-compose logs -f meuse
 ```
 
-The registry will be available at http://localhost:8855 with the frontend at http://localhost:8855/front
+### 4. Access Your Registry
 
-#### 4. Create and Manage Authentication Tokens
+- **Registry API**: http://localhost:8855
+- **Web Frontend**: http://localhost:8855/front
+- **Git Server**: http://localhost:8080
 
-Meuse uses tokens for authentication. Here's how to create and manage them for the initial users defined in the
-configuration:
+## 📋 Architecture
 
-##### Create a Token for Admin User
-
-```bash
-curl --header "Content-Type: application/json" --request POST \
-  --data '{"name":"admin-token","validity":365,"user":"admin","password":"admin_password_change_me"}' \
-  http://localhost:8855/api/v1/meuse/token
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Cargo Client  │────│   Meuse API     │────│  PostgreSQL DB  │
+│                 │    │   (Port 8855)   │    │                 │
+│ • Sparse Protocol│    │                 │    │ • Users         │
+│ • Git Protocol   │    │ • Authentication │    │ • Crates        │
+│ • Token Auth     │    │ • Authorization  │    │ • Tokens        │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │   Git Server    │
+                    │   (Port 8080)   │
+                    │                 │
+                    │ • Index Repo    │
+                    │ • Smart HTTP    │
+                    │ • Auto-init     │
+                    └─────────────────┘
 ```
 
-Response will contain the token:
+## 🔧 Configuration
 
-```json
-{"token":"your-token-will-appear-here"}
-```
+### Environment Variables
 
-##### Create a Token for Technical User
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `POSTGRES_PASSWORD` | Database password | Required |
+| `MEUSE_FRONTEND_SECRET` | Frontend encryption key (32+ chars) | Required |
+| `ADMIN_PASSWORD` | Admin user password | Required |
+| `GIT_SERVER_PASSWORD` | Git server authentication | Required |
+| `MEUSE_PORT` | HTTP port for Meuse | 8855 |
+| `GIT_SERVER_PORT` | HTTP port for Git server | 8080 |
 
-```bash
-curl --header "Content-Type: application/json" --request POST \
-  --data '{"name":"tech-token","validity":365,"user":"tech","password":"tech_password_change_me"}' \
-  http://localhost:8855/api/v1/meuse/token
-```
+### User Roles
 
-##### List Tokens for a User
+- **admin**: Full system access
+- **tech**: CI/CD operations, crate publishing
+- **read-only**: View-only access
 
-```bash
-# First, save your token to a variable for easier use
-TOKEN="your-token-from-above"
+## 🚀 Publishing Crates
 
-# List your own tokens
-curl --header "Content-Type: application/json" \
-  -H "Authorization: $TOKEN" \
-  http://localhost:8855/api/v1/meuse/token
+### 1. Configure Cargo
 
-# For admin users - list tokens for another user
-curl --header "Content-Type: application/json" \
-  -H "Authorization: $TOKEN" \
-  "http://localhost:8855/api/v1/meuse/token?user=tech"
-```
-
-##### Delete a Token
-
-```bash
-curl --header "Content-Type: application/json" --request DELETE \
-  -H "Authorization: $TOKEN" \
-  --data '{"name":"tech-token","user":"tech"}' \
-  http://localhost:8855/api/v1/meuse/token
-```
-
-#### 5. Configure Cargo to Use Your Registry
-
-Cargo supports multiple registry protocols. Here are different ways to configure your registry:
-
-##### Option 1: Using Git Protocol (Recommended for Meuse)
-
-Add the registry to your `~/.cargo/config.toml` with a file path to your local Git index:
-
-```toml
-[registries.meuse]
-index = "file:///path/to/meuse/data/index"
-```
-
-For remote Git repositories:
-
-```toml
-[registries.meuse]
-index = "https://github.com/yourusername/crates-index.git"
-```
-
-##### Option 2: Using Sparse Protocol
-
-The sparse protocol is faster and more efficient as it doesn't require a full Git clone. To use it, configure your
-`~/.cargo/config.toml` as follows:
+Create `~/.cargo/config.toml`:
 
 ```toml
 [registries.meuse]
@@ -172,161 +111,149 @@ protocol = "sparse"
 index = "sparse+http://localhost:8855/api/v1/crates/"
 ```
 
-With HTTPS (if you have a proxy in front of Meuse):
+### 2. Create Authentication Token
+
+```bash
+curl -X POST http://localhost:8855/api/v1/meuse/token/ \
+  -H "Content-Type: application/json" \
+  -d '{"name": "publish-token", "user": "admin", "password": "your_admin_password", "validity": 365}'
+```
+
+### 3. Configure Token
+
+Add to `~/.cargo/credentials.toml`:
+
+```toml
+[registries.meuse]
+token = "your-token-here"
+```
+
+### 4. Publish
+
+```bash
+cd your-rust-project
+cargo publish --registry meuse
+```
+
+## 📦 Consuming Crates
+
+### Add to Cargo.toml
+
+```toml
+[dependencies]
+your-crate = { version = "0.1.0", registry = "meuse" }
+```
+
+### Or set as default registry
 
 ```toml
 [registries.meuse]
 protocol = "sparse"
-index = "sparse+https://your-domain.com/api/v1/crates/"
-```
+index = "sparse+http://localhost:8855/api/v1/crates/"
 
-Add your token to `~/.cargo/credentials.toml`:
-
-```toml
-[registries.meuse]
-token = "your-token-from-above"
-```
-
-#### 6. Publish a Crate
-
-```bash
-# Navigate to your crate directory
-cd your-crate-directory
-
-# Publish to your Meuse registry
-cargo publish --registry meuse
-```
-
-#### 7. Using Your Registry for Dependencies
-
-To use crates from your registry in your projects, add the `registry` key to your dependencies in `Cargo.toml`:
-
-```toml
-[dependencies]
-crate-name = { version = "0.1.0", registry = "meuse" }
-```
-
-Or set your registry as the default for all dependencies by adding to `~/.cargo/config.toml`:
-
-```toml
 [source.crates-io]
 replace-with = "meuse"
-
-[source.meuse]
-registry = "https://registry.your-domain.com/api/v1/index"
-# Or for sparse protocol:
-# protocol = "sparse"
-# registry = "sparse+https://registry.your-domain.com/api/v1/crates/"
 ```
 
-### User Roles and Permissions
+## 🐳 Docker Services
 
-Meuse has three user roles with different permissions:
+### Included Services
 
-- **admin**: Full access to all features
-- **tech**: Most capabilities except some administrative functions
-- **read-only**: Can only read data, cannot make changes
-
-### API Capabilities
-
-Meuse provides APIs for:
-
-- **Crates**: Publish, yank, and download crates
-- **Users**: Create, update, and delete users
-- **Tokens**: Create and manage authentication tokens
-- **Categories**: Categorize crates for easier discovery
-- **Statistics**: View registry usage statistics
+1. **PostgreSQL** - Database for users, crates, and metadata
+2. **Meuse** - Main registry application
+3. **Git Server** - HTTP Git server for crate index
 
 ### Volumes
 
-The following data directories and volumes are used:
+- `postgres_data` - Database persistence
+- `git_data` - Git repository persistence
+- `./data/crates` - Crate binary files
+- `./data/logs` - Application logs
 
-- PostgreSQL data: Uses a named volume `postgres_data`
-- Crates data: `./data/crates` - Stores the actual crate files
-- Index data: `./data/index` - Git repository with crate metadata
-- Logs: `./data/logs` - Application logs
+## 🔍 API Endpoints
 
-## Advanced Configuration
+### Crates
+- `GET /api/v1/crates/config.json` - Registry configuration
+- `PUT /api/v1/crates/new` - Publish new crate
+- `GET /api/v1/crates/{name}/{version}/download` - Download crate
 
-### Environment Variables
+### Sparse Protocol
+- `GET /api/v1/crates/3/{prefix}` - Index by 3-letter prefix
+- `GET /api/v1/crates/2/{prefix}` - Index by 2-letter prefix
+- `GET /api/v1/crates/1/{prefix}` - Index by 1-letter prefix
 
-The following environment variables can be configured in the `.env` file:
+### Management
+- `POST /api/v1/meuse/token/` - Create authentication token
+- `GET /api/v1/meuse/crates` - List crates
+- `POST /api/v1/meuse/user/` - Create user
 
-**Database:**
+## 🔐 Security Features
 
-- `POSTGRES_USER`: PostgreSQL username
-- `POSTGRES_PASSWORD`: PostgreSQL password
-- `POSTGRES_DB`: PostgreSQL database name
-- `POSTGRES_HOST`: PostgreSQL host (usually 'postgres' in Docker Compose)
+- **Token-based authentication** with configurable expiration
+- **Role-based authorization** (admin, tech, read-only)
+- **Password hashing** with bcrypt
+- **HTTPS support** via reverse proxy
+- **Environment-based secrets** management
 
-**Meuse Server:**
+## 📊 Monitoring
 
-- `MEUSE_PORT`: HTTP port for Meuse server (default: 8855)
-- `MEUSE_FRONTEND_SECRET`: Secret for the frontend (at least 32 characters)
+### Health Checks
+- `GET /healthz` - Basic health check
+- `GET /metrics` - Prometheus metrics
 
-**Users:**
+### Logs
+- Structured JSON logging
+- Configurable log levels
+- Separate log volume for persistence
 
-- `ADMIN_USER`, `ADMIN_PASSWORD`, `ADMIN_DESCRIPTION`: Admin user settings
-- `TECH_USER`, `TECH_PASSWORD`, `TECH_DESCRIPTION`: Technical user settings
-- `READONLY_USER`, `READONLY_PASSWORD`, `READONLY_DESCRIPTION`: Read-only user settings
+## 🛠️ Development
 
-**Git Configuration:**
+### Local Setup
 
-- `GIT_EMAIL`: Email for Git commits
-- `GIT_USERNAME`: Username for Git commits
-- `GIT_PULL_REBASE`: Git pull rebase strategy (default: false)
-- `GIT_MERGE_STYLE`: Git merge conflict style (default: diff3)
-- `GIT_MERGE_FF`: Git fast-forward merge policy (default: only)
+```bash
+# Install dependencies
+lein deps
 
-**S3 Storage (Optional):**
+# Run tests
+lein test
 
-- `S3_ACCESS_KEY`: S3 access key
-- `S3_SECRET_KEY`: S3 secret key
-- `S3_ENDPOINT`: S3 endpoint URL
-- `S3_BUCKET`: S3 bucket name
+# Start development server
+lein run
+```
 
-### Using S3 for Crate Storage
+### Building
 
-Edit `config/config.yaml` to use S3 instead of the filesystem:
+```bash
+# Build JAR
+lein uberjar
+
+# Build Docker image
+docker build -t meuse .
+```
+
+## 🔧 Advanced Configuration
+
+### S3 Storage
 
 ```yaml
 crate:
   store: s3
-  access-key: "your-access-key"
-  secret-key: "your-secret-key"
-  endpoint: "s3-endpoint"
-  bucket: "your-bucket-name"
+  access-key: !envvar S3_ACCESS_KEY
+  secret-key: !envvar S3_SECRET_KEY
+  endpoint: !envvar S3_ENDPOINT
+  bucket: !envvar S3_BUCKET
 ```
 
-### Setting Up as a Mirror for crates.io
-
-Meuse can act as a mirror for crates.io, allowing you to cache crates locally.
-
-To use this feature, create a fork of the [crates.io-index](https://github.com/rust-lang/crates.io-index) and configure
-your Cargo to use your mirror.
-
-### Setting Up with SSL/TLS via HTTP Proxy
-
-For production environments, it's recommended to run Meuse behind a reverse proxy like Nginx or Traefik that handles
-SSL/TLS termination.
-
-#### Example Nginx Configuration
+### SSL/TLS with Reverse Proxy
 
 ```nginx
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
     server_name registry.your-domain.com;
-    
-    # SSL configuration
-    ssl_certificate /path/to/your/fullchain.pem;
-    ssl_certificate_key /path/to/your/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers on;
-    
-    # Security headers
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    
-    # Proxy settings
+
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
     location / {
         proxy_pass http://localhost:8855;
         proxy_set_header Host $host;
@@ -334,63 +261,72 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-    
-    # Increase upload size for crates
+
     client_max_body_size 100M;
 }
 ```
 
-With this setup, update your Cargo configuration to use HTTPS:
+## 🐛 Troubleshooting
 
-```toml
-[registries.meuse]
-protocol = "sparse"  # Or use Git protocol
-index = "sparse+https://registry.your-domain.com/api/v1/crates/"
-```
+### Common Issues
 
-Also update the Git repository's `config.json` to use HTTPS URLs:
+**"failed to authenticate"**
+- Verify token is valid and not expired
+- Check user credentials and permissions
 
-```json
-{
-    "dl": "https://registry.your-domain.com/api/v1/crates",
-    "api": "https://registry.your-domain.com"
-}
-```
+**"sparse registry requires HTTP URL"**
+- Ensure URL starts with `http://` or `https://`
+- Check network connectivity to registry
 
-## Troubleshooting
+**"no matching package found"**
+- Verify crate is published to registry
+- Check registry configuration in Cargo
 
-- **Authentication Issues**: Ensure your token is valid and not expired
-- **Git Access Problems**: Check Git configuration and permissions in the container
-    - Verify the Git repository uses the `master` branch
-    - If you see errors about 'master' not being a Git repository, check that the index directory is properly mounted
-    - If publishing fails with Git errors but says the crate exists, it may have actually succeeded
-- **Database Connection Errors**: Verify PostgreSQL is running and credentials are correct
-- **SSL/TLS Certificate Issues**: When using a proxy with SSL, ensure certificates are valid and trusted by your client
-- **Sparse Protocol**: Meuse supports the sparse protocol which avoids the need for a Git repository clone
-- **Proxy Configuration**: Check that your proxy is correctly forwarding all necessary headers to Meuse
+**Git server connection issues**
+- Verify `GIT_SERVER_USER` and `GIT_SERVER_PASSWORD`
+- Check Git server logs: `docker-compose logs git-server`
 
-### Common Error Messages
-
-#### "failed to authenticate when downloading repository"
-
-This typically means your token is invalid or expired. Create a new token and update your credentials file.
-
-#### "failed to download from registry at ..." (SSL errors)
-
-This may indicate SSL certificate issues. Ensure your certificate is valid and trusted. You can check with:
+### Debug Commands
 
 ```bash
-curl -v https://your-registry-domain.com
+# Check service status
+docker-compose ps
+
+# View logs
+docker-compose logs -f meuse
+docker-compose logs -f git-server
+
+# Test Git server
+curl http://localhost:8080/index.git/info/refs
+
+# Test sparse endpoint
+curl http://localhost:8855/api/v1/crates/config.json
 ```
 
-#### "sparse registry requires HTTP URL"
+## 📚 Documentation
 
-Ensure that your sparse protocol URL points to an HTTP/HTTPS endpoint, not a Git repository.
+- [API Documentation](./docs/api/)
+- [Configuration Guide](./docs/installation/configuration/)
+- [Installation Guide](./docs/installation/)
 
-#### "no matching package named ... found"
+## 🤝 Contributing
 
-Check that your Git index is properly synchronized and that the crate is published to your registry.
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
 
-## Additional Information
+## 📄 License
 
-For more details on configuring and using Meuse, see the [official documentation](https://meuse.mcorbin.fr/).
+Licensed under the MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [Clojure](https://clojure.org/)
+- Uses [JGit](https://www.eclipse.org/jgit/) for Git operations
+- Inspired by [crates.io](https://crates.io/)
+
+---
+
+**Ready to host your private Rust crates? Get started with Meuse today! 🚀**
