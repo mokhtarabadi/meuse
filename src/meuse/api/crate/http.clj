@@ -33,23 +33,27 @@
 
 (defmethod crates-api! :index-one-char
   [request]
-  (require '[meuse.api.crate.sparse :as sparse])
-  ((resolve 'meuse.api.crate.sparse/get-index-one-char) request))
+  (require '[meuse.api.crate.sparse :as sparse]
+           '[meuse.db.public.crate :as public-crate])
+  ((resolve 'meuse.api.crate.sparse/get-index-one-char) (resolve 'public-crate/crate-db) request))
 
 (defmethod crates-api! :index-two-char
   [request]
-  (require '[meuse.api.crate.sparse :as sparse])
-  ((resolve 'meuse.api.crate.sparse/get-index-two-char) request))
+  (require '[meuse.api.crate.sparse :as sparse]
+           '[meuse.db.public.crate :as public-crate])
+  ((resolve 'meuse.api.crate.sparse/get-index-two-char) (resolve 'public-crate/crate-db) request))
 
 (defmethod crates-api! :index-three-char
   [request]
-  (require '[meuse.api.crate.sparse :as sparse])
-  ((resolve 'meuse.api.crate.sparse/get-index-three-char) request))
+  (require '[meuse.api.crate.sparse :as sparse]
+           '[meuse.db.public.crate :as public-crate])
+  ((resolve 'meuse.api.crate.sparse/get-index-three-char) (resolve 'public-crate/crate-db) request))
 
 (defmethod crates-api! :index-crate
   [request]
-  (require '[meuse.api.crate.sparse :as sparse])
-  ((resolve 'meuse.api.crate.sparse/get-index-crate) request))
+  (require '[meuse.api.crate.sparse :as sparse]
+           '[meuse.db.public.crate :as public-crate])
+  ((resolve 'meuse.api.crate.sparse/get-index-crate) (resolve 'public-crate/crate-db) request))
 
 (defmethod crates-api! :default
   [request]

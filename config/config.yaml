@@ -1,34 +1,22 @@
 # PostgreSQL database configuration
 database:
-  user: !envvar POSTGRES_USER
-  password: !envvar POSTGRES_PASSWORD
-  host: !envvar POSTGRES_HOST
+  user: "meuse"
+  password: "meuse_password"
+  host: "localhost"
   port: 5432
-  name: !envvar POSTGRES_DB
+  name: "meuse"
   max-pool-size: 10
 
 # HTTP server configuration
 http:
   address: "0.0.0.0"  # Listen on all interfaces for Docker
-  port: !envvar MEUSE_PORT
+  port: 8855
 
 # Logging configuration
 logging:
   level: info
   console:
     encoder: json
-  appenders:
-    - type: file
-      encoder: json
-      file: "/app/logs/meuse.log"
-      rolling-policy:
-        type: fixed-window
-        pattern: "/app/logs/meuse.%i.log.gz"
-        min-index: 1
-        max-index: 5
-      triggering-policy:
-        type: size-based
-        max-size: 50MB
   overrides:
     org.eclipse.jetty: info
     com.zaxxer.hikari.pool.HikariPool: info
@@ -39,14 +27,14 @@ logging:
 # Git index configuration
 metadata:
   type: "shell"  # Use shell Git for local repository
-  path: "/app/index"
+  path: "./data/index"
   target: "master"
-  url: "file:///app/index"
+  url: "file://./data/index"
 
 # Crate storage configuration
 crate:
   store: filesystem
-  path: "/app/crates"
+  path: "./data/crates"
 
 # Frontend configuration
 frontend:

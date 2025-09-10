@@ -7,7 +7,6 @@
             [meuse.inject :as inject]
             [meuse.interceptor.auth :as itc-auth]
             [meuse.interceptor.config :as itc-config]
-            [meuse.interceptor.db :as itc-db]
             [meuse.interceptor.error :as itc-error]
             [meuse.interceptor.id :as itc-id]
             [meuse.interceptor.json :as itc-json]
@@ -45,7 +44,6 @@
          itc-ring/params ;; enter
          itc-ring/keyword-params ;; enter
          (itc-config/config crate-config metadata-config) ;;enter
-         itc-db/database-interceptor ;; enter
          itc-route/match-route ;; enter
          itc-route/subsystem  ;; enter
          (itc-auth/auth-request token-db user-db key-spec public-frontend)  ;; enter
