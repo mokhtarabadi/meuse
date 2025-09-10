@@ -2,13 +2,24 @@
 # Stage 1: Build the application
 FROM clojure:temurin-17-lein-2.9.8 AS build-env
 
+ARG MAVEN_OPTS
+ENV MAVEN_OPTS=$MAVEN_OPTS
+
 WORKDIR /app
 
-# Copy all source files for building
+# Copy project.clj first to cache dependencies
+COPY project.clj /app/
+
+# Download dependencies and cache them
+RUN --mount=type=cache,target=/root/.m2 \
+    lein deps
+
+# Now copy the rest of the source code
 COPY . /app/
 
-# Build the application
-RUN lein uberjar
+# Build the application using the cached dependencies
+RUN --mount=type=cache,target=/root/.m2 \
+    lein uberjar
 
 # Stage 2: Runtime image with Git fixes
 FROM openjdk:17-jdk-slim

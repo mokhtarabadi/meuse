@@ -50,3 +50,4 @@ data/
 temp-registry/
 local-crate-index/
 firebender.json
+.buildcache/

@@ -42,3 +42,4 @@ test/
 
 # Local data directories
 data/
+.buildcache/

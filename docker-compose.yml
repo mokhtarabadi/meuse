@@ -23,6 +23,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - MAVEN_OPTS=-Dmaven.repo.local=/maven-cache
+      cache_from:
+        - type=local,target=maven-cache
     container_name: meuse-registry
     restart: unless-stopped
     depends_on:
@@ -33,6 +37,7 @@ services:
       - ./data/crates:/app/crates
       - ./data/index:/app/index
       - ./data/logs:/app/logs
+      - maven_cache:/maven-cache
     environment:
       MEUSE_CONFIGURATION: /app/config/config.yaml
       # Database
@@ -63,6 +68,8 @@ services:
 volumes:
   postgres_data:
     name: meuse_postgres_data
+  maven_cache:
+    name: maven_cache
 
 networks:
   meuse-network:
