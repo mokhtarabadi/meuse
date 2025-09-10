@@ -26,8 +26,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Create meuse user and group with specific UID/GID for Docker compatibility
-RUN groupadd -g 999 meuse && \
-    useradd -r -u 999 -g meuse -d /home/meuse -s /bin/bash -m meuse
+RUN groupadd -g 1000 meuse && \
+    useradd -r -u 1000 -g meuse -d /home/meuse -s /bin/bash -m meuse
 
 # Set up proper home directory with correct permissions
 RUN mkdir -p /home/meuse/.config && \
@@ -51,7 +51,19 @@ RUN git config --global user.email "registry@meuse.local" && \
     git config --global --add safe.directory /app/index && \
     git config --global --add safe.directory /app/git-repos/index.git && \
     git config --global --add safe.directory '*' && \
-    git config --global core.autocrlf false
+    git config --global core.autocrlf false && \
+    git config --global pull.rebase false && \
+    git config --global merge.conflictstyle diff3 && \
+    git config --global merge.ff only
+
+# Create script to update Git config from environment variables
+RUN echo '#!/bin/bash\n\
+if [ ! -z "$GIT_EMAIL" ]; then\n  git config --global user.email "$GIT_EMAIL"\nfi\n\
+if [ ! -z "$GIT_USERNAME" ]; then\n  git config --global user.name "$GIT_USERNAME"\nfi\n\
+# Optional merge strategy configuration\nif [ ! -z "$GIT_PULL_REBASE" ]; then\n  git config --global pull.rebase "$GIT_PULL_REBASE"\nfi\n\
+if [ ! -z "$GIT_MERGE_STYLE" ]; then\n  git config --global merge.conflictstyle "$GIT_MERGE_STYLE"\nfi\n\
+if [ ! -z "$GIT_MERGE_FF" ]; then\n  git config --global merge.ff "$GIT_MERGE_FF"\nfi' > /home/meuse/update-git-config.sh && \
+    chmod +x /home/meuse/update-git-config.sh
 
 # Set working directory
 WORKDIR /app
@@ -64,4 +76,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8855/healthz || exit 1
 
 # Run application
-CMD ["java", "-jar", "/app/meuse.jar"]
+CMD ["/bin/bash", "-c", "/home/meuse/update-git-config.sh && java -jar /app/meuse.jar"]

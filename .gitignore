@@ -13,10 +13,10 @@ pom.xml.asc
 test/resources/tmp
 dev/resources/config.yaml
 *.iml
+
 # Environment files
 .env
-.env.local
-.env.production
+!.env.example
 
 # Logs
 logs/
@@ -43,8 +43,8 @@ data/
 *.temp
 
 # Local configuration files (should not be committed)
-config.json
-config/config.yaml
+# config.json
+# config/config.yaml
 
 # Local temporary registry data
 temp-registry/

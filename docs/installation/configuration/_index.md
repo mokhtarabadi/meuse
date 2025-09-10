@@ -138,6 +138,45 @@ frontend:
   secret: !secret "ozeifjrizjrjghtkzifrnbjfkzoejfjz"
 ```
 
+## Initial Users Configuration
+
+Meuse supports creating initial users during startup through configuration. This is useful for setting up admin, technical, and read-only users without manual database insertion.
+
+Example configuration:
+
+```yaml
+# Optional: Initial users to be created on startup
+initial-users:
+  # Admin user
+  - name: "admin_user"
+    password: "secure_admin_password"
+    description: "Administrator account"
+    role: "admin"
+    active: true
+
+  # Technical user
+  - name: "tech_user"
+    password: "secure_tech_password"
+    description: "Technical account for CI/CD"
+    role: "tech"
+
+  # Read-only user
+  - name: "readonly_user"
+    password: "secure_readonly_password"
+    description: "Read-only account"
+    role: "read-only"
+```
+
+Fields:
+- `name`: Username (required)
+- `password`: User password (required) - must be at least 8 characters
+- `description`: User description (required)
+- `role`: User role - must be one of: "admin", "tech", or "read-only" (required)
+- `active`: Whether the user is active - defaults to true if not specified
+
+Users will only be created if they don't already exist. If a user with the same name already exists, the creation will
+be skipped with an error message in the logs.
+
 ## Database migrations
 
 When Meuse starts, it will automatically create its database and apply migration scripts. Meuse will track which migration script has been executed in a table named `database_migrations`. This table will also be created and managed by Meuse.
@@ -179,9 +218,13 @@ You can find how to create a token in the `API` documentation.
 
 ## Root user configuration
 
-In order to use Meuse, you need to create a first `admin` user. The only way to create this user currently is by inserting it directly into the database ¯\_(ツ)_/¯
+In order to use Meuse, you need to create a first `admin` user. You can either:
 
-Passwords are encrypted using bcrypt. You can generate a password by running the Meuse jar with the `password` subcommand, for example:
+1. Use the initial users configuration (recommended) as described above, or
+2. Insert the user directly into the database
+
+If inserting manually, passwords are encrypted using bcrypt. You can generate a password by running the Meuse jar with
+the `password` subcommand, for example:
 
 ```
 java -jar meuse.jar password do_not_use_this_password

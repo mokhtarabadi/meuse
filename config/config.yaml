@@ -1,0 +1,64 @@
+# PostgreSQL database configuration
+database:
+  user: !envvar POSTGRES_USER
+  password: !envvar POSTGRES_PASSWORD
+  host: !envvar POSTGRES_HOST
+  port: !envvar POSTGRES_PORT
+  name: !envvar POSTGRES_DB
+  max-pool-size: 10
+
+# HTTP server configuration
+http:
+  address: "0.0.0.0"  # Listen on all interfaces for Docker
+  port: 8855
+
+# Logging configuration
+logging:
+  level: info
+  console:
+    encoder: json
+  overrides:
+    org.eclipse.jetty: info
+    com.zaxxer.hikari.pool.HikariPool: info
+    org.apache.http: error
+    io.netty.buffer.PoolThreadCache: error
+    org.eclipse.jgit.internal.storage.file.FileSnapshot: info
+
+# Git index configuration
+metadata:
+  type: "shell"  # Use shell Git for local repository
+  path: "/app/index"
+  target: "master"
+  url: "file:///app/index"
+
+# Crate storage configuration
+crate:
+  store: filesystem
+  path: "/app/crates"
+
+# Frontend configuration
+frontend:
+  enabled: true
+  public: false
+  secret: !envvar MEUSE_FRONTEND_SECRET
+
+# Initial users configuration
+initial-users:
+  # Admin user
+  - name: !envvar ADMIN_USER
+    password: !envvar ADMIN_PASSWORD
+    description: !envvar ADMIN_DESCRIPTION
+    role: "admin"
+    active: true
+
+  # Technical user
+  - name: !envvar TECH_USER
+    password: !envvar TECH_PASSWORD
+    description: !envvar TECH_DESCRIPTION
+    role: "tech"
+
+  # Read-only user
+  - name: !envvar READONLY_USER
+    password: !envvar READONLY_PASSWORD
+    description: !envvar READONLY_DESCRIPTION
+    role: "read-only"

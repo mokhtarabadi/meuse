@@ -3,6 +3,9 @@
             [mount.core :as mount]
             meuse.http
             [meuse.log :as log]
+            [meuse.init-users :as init-users]
+            [meuse.config :refer [config]]
+            [meuse.db :refer [database]]
             [signal.handler :refer [with-handler]])
   (:gen-class))
 
@@ -15,6 +18,7 @@
   "Start the application using mount."
   []
   (mount/start)
+  (init-users/create-initial-users! database config)
   (log/info {} "Ecoute, on t'connait pas, mais laisse nous t'dire que tu t'prepares des nuits blanches, des migraines... des \"nervous breakdown\" comme on dit de nos jours.")
   :ready)
 
