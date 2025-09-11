@@ -53,6 +53,18 @@ git config branch.master.merge refs/heads/master
 cd ../..
 ```
 
+### Alternative: use bundled nginx git server
+
+You can run the lightweight nginx+git-http-backend service that ships with this repository. After generating
+`git-data/htpasswd` (see the Git HTTP Backend docs), start the git-server together with Postgres:
+
+```bash
+docker compose up -d postgres git-server
+```
+
+The git server will serve repositories from `./git-data` and use the htpasswd file at `./git-data/htpasswd` for
+authentication.
+
 ## Step 3: Start PostgreSQL
 
 ```bash
