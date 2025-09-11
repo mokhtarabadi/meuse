@@ -24,13 +24,13 @@ services:
     restart: unless-stopped
     ports:
       - "${GIT_PORT:-8180}:80"
+    environment:
+      GIT_POSTBUFFER: 1048576
     volumes:
       - ./git-data:/srv/git
       - ./git-data/htpasswd:/etc/nginx/.htpasswd
       - ./docker/git/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./docker/git/default.conf:/etc/nginx/conf.d/default.conf:ro
-    environment:
-      - GIT_POSTBUFFER=1048576
 
   meuse:
     build:
@@ -45,8 +45,37 @@ services:
       - ./crates:/app/crates
       - ./config/docker-config.yaml:/app/config/config.yaml:ro
     environment:
-      - MEUSE_CONFIGURATION=/app/config/config.yaml
-      - JAVA_OPTS=${MEUSE_JAVA_OPTS:--Xmx512m}
+      MEUSE_CONFIGURATION: /app/config/config.yaml
+      JAVA_OPTS: ${MEUSE_JAVA_OPTS:--Xmx512m}
+      # Git configuration
+      GIT_USER: ${GIT_USER}
+      GIT_PASSWORD: ${GIT_PASSWORD}
+      GIT_INDEX_PATH: ${GIT_INDEX_PATH}
+      GIT_TARGET: ${GIT_TARGET}
+      GIT_INDEX_URL: http://git-server/myindex.git
+      # Database configuration
+      POSTGRES_DB: ${POSTGRES_DB:-meuse}
+      POSTGRES_USER: ${POSTGRES_USER:-meuse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-meuse}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_POOL_SIZE: ${POSTGRES_POOL_SIZE:-10}
+      # Meuse configuration
+      MEUSE_PORT: ${MEUSE_PORT:-8855}
+      MEUSE_LOG_LEVEL: ${MEUSE_LOG_LEVEL:-info}
+      # Crate storage
+      CRATES_PATH: ${CRATES_PATH}
+      # Frontend settings
+      FRONTEND_ENABLED: ${FRONTEND_ENABLED:-true}
+      FRONTEND_PUBLIC: ${FRONTEND_PUBLIC:-true}
+      FRONTEND_SECRET: ${FRONTEND_SECRET}
+      # Initial users
+      ADMIN_USER: ${ADMIN_USER}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      TECH_USER: ${TECH_USER}
+      TECH_PASSWORD: ${TECH_PASSWORD}
+      READ_USER: ${READ_USER}
+      READ_PASSWORD: ${READ_PASSWORD}
     entrypoint: [ "/bin/sh", "-c", "mkdir -p /app/config && exec java $${JAVA_OPTS} -jar /app/meuse.jar" ]
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8855/healthz" ]
