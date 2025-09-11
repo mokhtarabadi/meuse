@@ -24,7 +24,7 @@
                  (.addDataSourceProperty "password" password)
                  (.setMaximumPoolSize (or max-pool-size default-pool-size)))]
     (when schema
-        (.addDataSourceProperty config "currentSchema" schema))
+      (.addDataSourceProperty config "currentSchema" schema))
     (when key
       (log/info {} "ssl enabled for the database")
       (.addDataSourceProperty config "ssl" true)

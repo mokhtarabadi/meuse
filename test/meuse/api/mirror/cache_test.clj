@@ -41,7 +41,7 @@
           crate-file (.getBytes "foobar")]
       ;; ugly
       (with-redefs [http/get (spy/stub
-                                    {:body crate-file})]
+                              {:body crate-file})]
         (is (= {:body {:ok true}
                 :status 200}
                (cache/cache

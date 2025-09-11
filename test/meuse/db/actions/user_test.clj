@@ -112,6 +112,5 @@
     (is (= user1
            (by-id database (str (:users/id user1)))))))
 
-
 (deftest count-users-test
   (is (= {:count 5} (count-users database))))

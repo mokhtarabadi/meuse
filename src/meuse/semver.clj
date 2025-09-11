@@ -24,8 +24,8 @@
     (let [splitted (string/split value #"\." 3)]
       (when-not (= 3 (count splitted))
         (throw (ex-info "Invalid semver version" {:value value})))
-      (let [patch(->> (last splitted)
-                      extract-number)]
+      (let [patch (->> (last splitted)
+                       extract-number)]
         (mapv is-pos-int? [(first splitted) (second splitted) patch])))
     (catch Exception e
       (log/error {} e "Invalid semver version")

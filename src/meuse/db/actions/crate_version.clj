@@ -26,11 +26,11 @@
                                 (:crates_versions/id crate-version)
                                 yanked?)))
         (throw
-             (ex/ex-not-found
-              (format "cannot %s the crate: the version does not exist"
-                      (yanked?->msg yanked?))
-              {:crate-name crate-name
-               :crate-version crate-version})))
+         (ex/ex-not-found
+          (format "cannot %s the crate: the version does not exist"
+                  (yanked?->msg yanked?))
+          {:crate-name crate-name
+           :crate-version crate-version})))
       (throw (ex/ex-not-found (format "cannot %s the crate: the crate does not exist"
                                       (yanked?->msg yanked?))
                               {:crate-name crate-name

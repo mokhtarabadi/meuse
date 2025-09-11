@@ -77,7 +77,7 @@
               :body {:categories [{:id #uuid "d22dffa8-5750-11ea-bb97-b34af80344d5"
                                    :name "foo"
                                    :description "bar"}]}}
-           (list-categories category-mock request)))))
+             (list-categories category-mock request)))))
   (testing "bad permissions"
     (is (thrown-with-msg?
          ExceptionInfo

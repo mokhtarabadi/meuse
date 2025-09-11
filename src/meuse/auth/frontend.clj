@@ -23,7 +23,7 @@
   "Encrypt a string using the key spec."
   [value ^SecretKeySpec key-spec]
   (let [cipher (doto (Cipher/getInstance "AES/ECB/PKCS5Padding")
-                     (.init Cipher/ENCRYPT_MODE key-spec))]
+                 (.init Cipher/ENCRYPT_MODE key-spec))]
     (.encodeToString (Base64/getEncoder)
                      (.doFinal cipher (.getBytes value "UTF-8")))))
 
@@ -31,7 +31,7 @@
   "Decrypt a string using the key spec."
   [token ^SecretKeySpec key-spec]
   (let [cipher (doto (Cipher/getInstance "AES/ECB/PKCS5Padding")
-                     (.init Cipher/DECRYPT_MODE key-spec))]
+                 (.init Cipher/DECRYPT_MODE key-spec))]
     (String. (.doFinal cipher (.decode (Base64/getDecoder) token)))))
 
 (defn generate-token

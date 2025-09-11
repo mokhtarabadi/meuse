@@ -23,6 +23,5 @@
            "Expired at " [:span {:class "bold"} (:tokens/expired_at token)]
            [:br]
            "Last used at " [:span {:class "bold"} (or (:tokens/last_used_at token)
-                                                      "never")]
-           ]]))
+                                                      "never")]]]))
      [:p [:span {:class "bold"} "You must be logged it to see this page"]])])

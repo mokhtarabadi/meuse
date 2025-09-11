@@ -5,23 +5,23 @@
 
 (defmacro info
   [data & args]
-  `(context/with-context~ data
-    (log/info ~@args)))
+  `(context/with-context ~data
+     (log/info ~@args)))
 
 (defmacro infof
   [data & args]
-  `(context/with-context~ data
-    (log/infof ~@args)))
+  `(context/with-context ~data
+     (log/infof ~@args)))
 
 (defmacro debug
   [data & args]
-  `(context/with-context~ data
-    (log/debug ~@args)))
+  `(context/with-context ~data
+     (log/debug ~@args)))
 
 (defmacro error
   [data & args]
-  `(context/with-context~ data
-    (log/error ~@args)))
+  `(context/with-context ~data
+     (log/error ~@args)))
 
 (defn req-ctx
   [request]

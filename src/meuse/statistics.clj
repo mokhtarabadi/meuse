@@ -39,8 +39,7 @@
            (metric/create-gauge! ::crates_total
                                  {}
                                  (fn []
-                                   (nb-crates-total public-crate/crate-db)
-                                   ))
+                                   (nb-crates-total public-crate/crate-db)))
            (metric/create-gauge! ::crates_versions_total
                                  {}
                                  (fn []

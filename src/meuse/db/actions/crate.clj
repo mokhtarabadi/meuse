@@ -57,24 +57,24 @@
                                              (:vers metadata))]
       (if crate
           ;; the crate exists, let's check the version
-          (do
-            (when crate-version
-              (throw (ex/ex-incorrect (format "release %s for crate %s already exists"
-                                              (:vers metadata)
-                                              (:name metadata)))))
+        (do
+          (when crate-version
+            (throw (ex/ex-incorrect (format "release %s for crate %s already exists"
+                                            (:vers metadata)
+                                            (:name metadata)))))
             ;; the user should own the crate
-            (when-not (-> (jdbc/execute! db-tx (crate-user-queries/by-crate-and-user
-                                                (:crates/id crate)
-                                                user-id))
-                          first)
-              (throw (ex/ex-forbidden "the user does not own the crate")))
-            ;; insert the new version
-            (jdbc/execute! db-tx (crate-version-queries/create
-                                  metadata
-                                  (:crates/id crate)))
-            (crate-category/create-categories db-tx
+          (when-not (-> (jdbc/execute! db-tx (crate-user-queries/by-crate-and-user
                                               (:crates/id crate)
-                                              (:categories metadata)))
+                                              user-id))
+                        first)
+            (throw (ex/ex-forbidden "the user does not own the crate")))
+            ;; insert the new version
+          (jdbc/execute! db-tx (crate-version-queries/create
+                                metadata
+                                (:crates/id crate)))
+          (crate-category/create-categories db-tx
+                                            (:crates/id crate)
+                                            (:categories metadata)))
         ;; the crate does not exist
         (let [crate-id (UUID/randomUUID)
               created-crate (crate-queries/create metadata crate-id)

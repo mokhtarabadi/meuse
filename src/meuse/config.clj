@@ -7,7 +7,7 @@
             [environ.core :refer [env]]
             [mount.core :refer [defstate]]
             [unilog.config :refer [start-logging!]]
-    [clojure.string :as str]
+            [clojure.string :as str]
             [yummy.config :as yummy]))
 
 (defn stop!
@@ -16,71 +16,71 @@
   (System/exit 1))
 
 (defn- convert-string-to-appropriate-type
-       "Convert string values to appropriate types based on their content.
+  "Convert string values to appropriate types based on their content.
         This is needed because environment variables loaded through !envvar
         are always treated as strings, but some values need to be numbers, booleans, or nil."
-       [value]
-       (cond
+  [value]
+  (cond
          ;; If it's not a string, return as is
-         (not (string? value)) value
+    (not (string? value)) value
 
          ;; Convert "true" and "false" (any case) to boolean values
-         (= (str/lower-case value) "true") true
-         (= (str/lower-case value) "false") false
+    (= (str/lower-case value) "true") true
+    (= (str/lower-case value) "false") false
 
          ;; Convert "nil" string (any case) to nil
-         (= (str/lower-case value) "nil") nil
+    (= (str/lower-case value) "nil") nil
 
          ;; Try to convert to integer if it matches a number pattern
-         (re-matches #"^-?\d+$" value) (Integer/parseInt value)
+    (re-matches #"^-?\d+$" value) (Integer/parseInt value)
 
          ;; Try to convert to double if it matches decimal pattern
-         (re-matches #"^-?\d+\.\d+$" value) (Double/parseDouble value)
+    (re-matches #"^-?\d+\.\d+$" value) (Double/parseDouble value)
 
          ;; Otherwise keep as string
-         :else value))
+    :else value))
 
 (defn- convert-config-types
-       "Recursively traverse the configuration map and convert values to appropriate types."
-       [config]
-       (cond
+  "Recursively traverse the configuration map and convert values to appropriate types."
+  [config]
+  (cond
          ;; If it's a map, process each value recursively
-         (map? config) (into {} (map (fn [[k v]] [k (convert-config-types v)]) config))
+    (map? config) (into {} (map (fn [[k v]] [k (convert-config-types v)]) config))
 
          ;; If it's a collection (but not a map), process each item recursively
-         (and (coll? config) (not (map? config))) (into (empty config) (map convert-config-types config))
+    (and (coll? config) (not (map? config))) (into (empty config) (map convert-config-types config))
 
          ;; For leaf values, convert to appropriate type
-         :else (convert-string-to-appropriate-type config)))
+    :else (convert-string-to-appropriate-type config)))
 
 (defn load-config
   "Takes a path and loads the configuration."
   [path]
-      (let [raw-config (yummy/load-config
-                         {:program-name :meuse
-                          :path         path
-                          :spec         nil                 ;; Disable validation here, we'll do it after type conversion
-                          :die-fn
-                          (fn [e msg]
-                              (let [error-msg (str "fail to load config: "
-                                                   msg
-                                                   "\n"
-                                                   "config path = "
-                                                   path)]
-                                   (log/error {} e error-msg)
-                                   (stop!)))})
+  (let [raw-config (yummy/load-config
+                    {:program-name :meuse
+                     :path         path
+                     :spec         nil                 ;; Disable validation here, we'll do it after type conversion
+                     :die-fn
+                     (fn [e msg]
+                       (let [error-msg (str "fail to load config: "
+                                            msg
+                                            "\n"
+                                            "config path = "
+                                            path)]
+                         (log/error {} e error-msg)
+                         (stop!)))})
             ;; Convert string values to appropriate types
-            config (convert-config-types raw-config)]
+        config (convert-config-types raw-config)]
            ;; Validate against spec after type conversion
-           (try
-             (yummy/validate config ::spec/config)
-             config
-             (catch Exception e
-               (let [error-msg (str "fail to load config: validation\n"
-                                    "config path = "
-                                    path)]
-                    (log/error {} e error-msg)
-                    (stop!))))
+    (try
+      (yummy/validate config ::spec/config)
+      config
+      (catch Exception e
+        (let [error-msg (str "fail to load config: validation\n"
+                             "config path = "
+                             path)]
+          (log/error {} e error-msg)
+          (stop!))))
     (when-let [front-secret (get-in config [:frontend :secret])]
       (when (< (count (cloak/unmask front-secret)) spec/frontend-secret-min-size)
         (throw (ex/ex-incorrect (format "The frontend secret is too small (minimum size is %d"

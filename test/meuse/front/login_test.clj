@@ -25,7 +25,7 @@
            (= db-user
               (login/check-password user-mock {:params {:username "foo"
                                                         :password "bar"}}))))))
-    (testing "user not found"
+  (testing "user not found"
     (let [db-user nil
           user-mock (mocks/user-mock {:by-name db-user})]
       (is (thrown-with-msg?
