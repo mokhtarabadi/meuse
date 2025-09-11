@@ -6,34 +6,84 @@ disableToc: false
 
 # Setting Up Meuse: Quick Start Guide
 
-This guide provides a streamlined approach to set up a complete Meuse registry environment with minimal effort.
+This guide provides two approaches to set up Meuse: a streamlined Docker approach with automatic initialization, or a
+manual setup for more control.
 
 ## Prerequisites
 
-- Java (OpenJDK 11+)
+Choose your setup method:
+
+**For Docker Setup (Recommended)**:
+
+- Docker and Docker Compose
 - Git
-- Docker and Docker Compose (for PostgreSQL)
+
+**For Manual Setup**:
+- Java (OpenJDK 11+)
+- PostgreSQL
+- Git
 - Cargo/Rust toolchain
 
-## Step 1: Clone and Prepare
+## Option 1: Docker Setup (Recommended)
+
+The fastest way to get Meuse running:
 
 ```bash
-# Clone Meuse
+# Clone the repository
 git clone https://github.com/mcorbin/meuse.git
 cd meuse
 
-# Create required directories
-mkdir -p index crates git-repos/index-workspace
+# Configure environment
+cp .env.example .env
+# Edit .env to customize settings (optional)
+
+# Generate Git authentication
+./scripts/gen-htpasswd.sh
+
+# Start everything
+docker compose up -d
 ```
 
-## Step 2: Set Up Git Repository
+That's it! The Meuse container automatically initializes the Git repository on first run.
+
+To verify:
 
 ```bash
-# Set up a workspace repository for the index
+docker compose ps  # Check all services are running
+curl http://localhost:8855/healthz  # Test Meuse health
+```
+
+See the [Docker Deployment](/installation/docker-deployment) guide for detailed configuration options.
+
+## Option 2: Manual Setup
+
+If you prefer to run Meuse directly without Docker:
+
+### Step 1: Set Up PostgreSQL
+
+```bash
+# Using Docker for PostgreSQL only
+docker run -d --name meuse-postgres \
+  -e POSTGRES_DB=meuse \
+  -e POSTGRES_USER=meuse \
+  -e POSTGRES_PASSWORD=meuse \
+  -p 5432:5432 \
+  postgres:14.4
+```
+
+Or install PostgreSQL locally and create the database.
+
+### Step 2: Prepare Git Repository
+
+```bash
+# Create directories
+mkdir -p git-repos/index-workspace crates
+
+# Set up Git repository
 cd git-repos/index-workspace
 git init
 
-# Add the essential config.json file
+# Create config.json
 cat > config.json << EOF
 {
   "dl": "http://localhost:8855/api/v1/crates",
@@ -42,69 +92,28 @@ cat > config.json << EOF
 }
 EOF
 
-# Commit the config file
+# Commit configuration
 git add config.json
 git commit -m "Add config.json"
 
-# Configure git tracking
+# Configure Git
 git config branch.master.remote origin
 git config branch.master.merge refs/heads/master
 
 cd ../..
 ```
 
-### Alternative: use bundled nginx git server
+### Step 3: Configure Meuse
 
-You can run the lightweight nginx+git-http-backend service that ships with this repository. After generating
-`git-data/htpasswd` (see the Git HTTP Backend docs), start the git-server together with Postgres:
+Create `config/config.yaml`:
 
-```bash
-docker compose up -d postgres git-server
-```
-
-The git server will serve repositories from `./git-data` and use the htpasswd file at `./git-data/htpasswd` for
-authentication.
-
-## Step 3: Start PostgreSQL
-
-```bash
-# Create docker-compose.yml
-cat > docker-compose.yml << EOF
-version: '3.8'
-services:
-  postgres:
-    image: postgres:14.4
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_DB: meuse
-      POSTGRES_USER: meuse
-      POSTGRES_PASSWORD: meuse
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-volumes:
-  pg_data:
-EOF
-
-# Start PostgreSQL
-docker compose up -d postgres
-```
-
-## Step 4: Configure Meuse
-
-```bash
-# Create configuration directory
-mkdir -p config
-
-# Create configuration file with initial users
-cat > config/init_users_config.yaml << EOF
+```yaml
 database:
   user: "meuse"
   password: "meuse"
   host: "localhost"
   port: 5432
   name: "meuse"
-  max-pool-size: 10
 
 http:
   address: "0.0.0.0"
@@ -112,22 +121,10 @@ http:
 
 logging:
   level: "info"
-  console:
-    encoder: "json"
-  overrides:
-    org.eclipse.jetty: "info"
-    com.zaxxer.hikari.pool.HikariPool: "info"
-    org.apache.http: "error"
-    io.netty.buffer.PoolThreadCache: "error"
-    org.eclipse.jgit.internal.storage.file.FileSnapshot: "info"
-    com.amazonaws.auth.AWS4Signer: "warn"
-    com.amazonaws.retry.ClockSkewAdjuster: "warn"
-    com.amazonaws.request: "warn"
-    com.amazonaws.requestId: "warn"
 
 metadata:
   type: "shell"
-  path: "$(pwd)/git-repos/index-workspace"
+  path: "./git-repos/index-workspace"
   target: "origin/master"
   url: "http://localhost:8855/index"
 
@@ -138,125 +135,123 @@ crate:
 frontend:
   enabled: true
   public: true
-  secret: "change-this-to-a-random-32-char-string"
 
-# Initial users configuration
+# Initial admin user
 init-users:
   users:
     - name: "admin"
       password: "admin_password"
-      description: "Administrator user"
+      description: "Administrator"
       role: "admin"
-      active: true
-    - name: "tech_user"
-      password: "tech_password"
-      description: "Tech user with publish rights"
-      role: "tech"
-    - name: "reader"
-      password: "reader_password"
-      description: "Read-only user"
-      role: "read-only"
-EOF
 ```
 
-## Step 5: Start Meuse
+### Step 4: Run Meuse
 
 ```bash
-# Start Meuse using the configuration
-export MEUSE_CONFIGURATION=config/init_users_config.yaml
-lein run
+# Download the latest release from GitHub
+wget https://github.com/mcorbin/meuse/releases/latest/download/meuse.jar
+
+# Or build from source
+lein uberjar
+
+# Run Meuse
+export MEUSE_CONFIGURATION=config/config.yaml
+java -jar meuse.jar
 ```
 
-## Step 6: Configure Cargo
+## Configure Cargo Client
 
-```bash
-# Configure Cargo to use Meuse
-mkdir -p ~/.cargo
+Regardless of setup method, configure Cargo to use your registry:
 
-# Add registry to config.toml
-cat >> ~/.cargo/config.toml << EOF
+### 1. Add Registry to Cargo
+
+Edit `~/.cargo/config.toml`:
+
+```toml
 [registries.meuse]
-index = "file://$(pwd)/git-repos/index-workspace"
-EOF
+# For Docker setup with Git server
+index = "http://localhost:8180/myindex.git"
 
-# Create a token using the admin credentials
+# For manual setup
+# index = "file:///path/to/git-repos/index-workspace"
+
+[net]
+git-fetch-with-cli = true  # Required for HTTP Git
+```
+
+### 2. Create Authentication Token
+
+```bash
+# Create a token via API
 TOKEN=$(curl -s -X POST -H "Content-Type: application/json" \
-  -d '{"name":"admin_token","validity":365,"user":"admin","password":"admin_password"}' \
-  http://localhost:8855/api/v1/meuse/token | grep -o '"token":"[^"]*"' | cut -d '"' -f 4)
+  -d '{"name":"my_token","validity":365,"user":"admin","password":"admin_password"}' \
+  http://localhost:8855/api/v1/meuse/token | jq -r .token)
 
-# Add token to credentials.toml
-cat >> ~/.cargo/credentials.toml << EOF
-[registries.meuse]
-token = "$TOKEN"
-EOF
-
-echo "Token added to credentials: $TOKEN"
+echo "Token: $TOKEN"
 ```
 
-## Step 7: Publishing a Crate
+### 3. Add Token to Credentials
+
+Edit `~/.cargo/credentials.toml`:
+
+```toml
+[registries.meuse]
+token = "your-token-here"
+```
+
+## Publishing Your First Crate
 
 ```bash
-# Create a library crate
-cargo new --lib my_crate
-cd my_crate
+# Create a test library
+cargo new --lib my-first-crate
+cd my-first-crate
 
-# Edit Cargo.toml to include:
-# [package.metadata.registry]
-# publish = ["meuse"]
+# Add registry metadata to Cargo.toml
+cat >> Cargo.toml << EOF
+
+[package.metadata.registry]
+publish = ["meuse"]
+EOF
 
 # Publish to Meuse
 cargo publish --registry meuse
 ```
 
-## Step 8: Using Published Crates
+## Using Published Crates
 
-In your other projects' `Cargo.toml`:
+In another project's `Cargo.toml`:
 
 ```toml
 [dependencies]
-my_crate = { version = "0.1.0", registry = "meuse" }
+my-first-crate = { version = "0.1.0", registry = "meuse" }
 ```
+
+## Next Steps
+
+- **Security**: Change default passwords in production
+- **HTTPS**: Set up SSL/TLS for secure connections
+- **Monitoring**: Enable Prometheus metrics at `/metrics`
+- **Backup**: Regular backups of database and crate storage
 
 ## Troubleshooting
 
-### Common Issues
-
-1. **Git Repository Issues**
-    - Ensure `config.json` exists in the root of the workspace repo
-    - Check that git config has proper tracking set up
-
-2. **Path Configuration**
-    - Always use absolute paths in Meuse configuration
-    - Double-check repository paths match between Cargo and Meuse configs
-
-3. **Library Crates**
-    - Ensure crates have a `lib.rs` file with public functions to be usable as dependencies
-
-4. **Database Connectivity**
-    - Verify PostgreSQL is running and accessible
-    - Ensure database credentials match between Docker and Meuse config
-
-### Logs and Debugging
-
-If you encounter issues, check:
-
-- Meuse server logs for detailed error information
-- Git repository state and configuration
-- Database connectivity and tables
-- Token authentication validity
-
-## Cleanup
-
-To clean up your environment:
+### Docker Issues
 
 ```bash
-# Stop Meuse (press Ctrl+C if running in foreground)
+# View logs
+docker compose logs -f meuse
 
-# Stop and remove PostgreSQL
+# Restart services
+docker compose restart
+
+# Reset everything (WARNING: deletes data)
 docker compose down -v
-
-# Remove generated directories if needed
-rm -rf index crates git-repos
 ```
 
-For more detailed configuration options, see the [Configuration](/installation/configuration) section.
+### Manual Setup Issues
+
+- **Database connection**: Verify PostgreSQL is running and credentials match
+- **Git issues**: Ensure Git repository has proper permissions
+- **Port conflicts**: Check ports 8855 (Meuse) and 8180 (Git) are available
+
+For more help, see the [complete documentation](/installation).

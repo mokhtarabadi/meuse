@@ -10,11 +10,31 @@ Documentation is available at https://meuse.mcorbin.fr/ and in the [docs](./docs
 
 ## Quick Start
 
-For a quick local setup, see the [Quick Start Guide](./docs/installation/quick-start/_index.md) which covers setting up
-the complete system with Docker Compose.
+The fastest way to get Meuse running with Docker:
 
-For setting up a lightweight Git HTTP server for your registry, see
-the [Git HTTP Backend Guide](./docs/installation/git-http-backend/_index.md).
+```bash
+# Clone the repository
+git clone https://github.com/mcorbin/meuse.git
+cd meuse
+
+# Copy and configure environment variables
+cp .env.example .env
+# Edit .env to customize your settings
+
+# Generate Git HTTP authentication
+./scripts/gen-htpasswd.sh
+
+# Start all services
+docker compose up -d
+```
+
+The Meuse container will automatically initialize the Git repository on first run. No manual initialization is required!
+
+For detailed instructions, see:
+
+- [Quick Start Guide](./docs/installation/quick-start/_index.md) - Manual setup without Docker
+- [Docker Deployment Guide](./docs/installation/docker-deployment/_index.md) - Full Docker setup
+- [Git HTTP Backend Guide](./docs/installation/git-http-backend/_index.md) - Git server details
 
 ## Features
 
@@ -30,6 +50,7 @@ the [Git HTTP Backend Guide](./docs/installation/git-http-backend/_index.md).
 - [x] Monitoring: Meuse exposes a Prometheus endpoint with various metrics (HTTP server, database pool, JVM metrics...).
 - [x] Small frontend to explore crates.
 - [x] Automatic user creation from configuration.
+- [x] Automatic Git repository initialization on first run.
 
 ## Plan
 

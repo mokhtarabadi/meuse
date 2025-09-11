@@ -34,68 +34,98 @@ The Git HTTP backend solution:
 - `scripts/gen-htpasswd.sh` — Helper script to generate authentication credentials
 - `.env.example` — Example environment variables file (copy to `.env`)
 
-### Initial Setup
+## Quick Start with Docker Compose
 
-1. **Set up credentials**
+The simplest way to use the Git HTTP backend is with the provided Docker Compose setup:
 
-   ```bash
-   # Copy environment example file
-   cp .env.example .env
-   
-   # Edit .env to set your credentials
-   # GIT_USER=your_username
-   # GIT_PASSWORD=your_secure_password
-   # GIT_PORT=8180 (default port)
-   
-   # Generate htpasswd file
-   ./scripts/gen-htpasswd.sh
-   ```
+```bash
+# 1. Configure environment
+cp .env.example .env
+# Edit .env to set GIT_USER and GIT_PASSWORD
 
-2. **Create the Git index repository**
+# 2. Generate authentication file
+./scripts/gen-htpasswd.sh
 
-   ```bash
-   # Create directory for repositories
-   mkdir -p git-data
-   
-   # Create bare repository for the Cargo index
-   cd git-data
-   git init --bare myindex.git
-   cd -
-   
-   # Add config.json to the repository (required by Cargo)
-   echo '{
-     "dl": "http://localhost:8855/api/v1/crates",
-     "api": "http://localhost:8855",
-     "allowed-registries": ["https://github.com/rust-lang/crates.io-index"]
-   }' > git-data/config.json
-   
-   # Copy config.json into the repository
-   cp git-data/config.json git-data/myindex.git/
-   ```
+# 3. Start services
+docker compose up -d
 
-3. **Start the Git HTTP server**
+# 4. Verify
+git clone http://gituser@localhost:8180/myindex.git test-clone
+```
 
-   ```bash
-   docker compose up -d git-server
-   ```
+The Meuse container will automatically initialize the Git repository on first run.
 
-4. **Update Git server repository info**
+## Manual Git Server Setup
 
-   This step is essential for the Git HTTP protocol to work properly:
+If you want to run the Git server separately:
 
-   ```bash
-   docker compose exec git-server bash -c 'cd /srv/git/myindex.git && git update-server-info'
-   ```
+### Prerequisites
 
-5. **Test the Git server**
+- Docker
+- The htpasswd file must be generated first
 
-   ```bash
-   # Test cloning (will prompt for password)
-   git clone http://your_username@localhost:8180/myindex.git test-clone
-   
-   # Or with embedded credentials (for scripts/automation)
-   git clone http://your_username:your_password@localhost:8180/myindex.git test-clone
-   ```
+### Step 1: Generate Authentication
+
+```bash
+# Create git-data directory
+mkdir -p git-data
+
+# Option 1: Use the provided script
+./scripts/gen-htpasswd.sh
+
+# Option 2: Generate manually
+docker run --rm \
+  -v "$(pwd)/git-data:/git-data" \
+  httpd:2.4-alpine \
+  htpasswd -bc /git-data/htpasswd username password
+```
+
+### Step 2: Initialize Git Repository
+
+The Meuse container handles this automatically, but for manual setup:
+
+```bash
+# Create bare repository
+mkdir -p git-data/myindex.git
+cd git-data/myindex.git
+git init --bare
+
+# Create config.json
+cat > config.json << EOF
+{
+  "dl": "http://localhost:8855/api/v1/crates",
+  "api": "http://localhost:8855",
+  "allowed-registries": ["https://github.com/rust-lang/crates.io-index"]
+}
+EOF
+
+# Add to repository
+git add config.json
+git commit -m "Initialize registry"
+git update-server-info
+cd ../..
+```
+
+### Step 3: Run Git Server
+
+Using Docker Compose (recommended):
+
+```bash
+docker compose up -d git-server
+```
+
+Or standalone:
+
+```bash
+docker run -d \
+  --name meuse-git-server \
+  -p 8180:80 \
+  -v $(pwd)/git-data:/srv/git \
+  -v $(pwd)/git-data/htpasswd:/etc/nginx/.htpasswd:ro \
+  -v $(pwd)/docker/git/nginx.conf:/etc/nginx/nginx.conf:ro \
+  -v $(pwd)/docker/git/default.conf:/etc/nginx/conf.d/default.conf:ro \
+  emarcs/nginx-git:latest
+```
 
 ## Integrating with Meuse
 

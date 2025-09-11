@@ -1,4 +1,39 @@
----
+## Using the Registry
+
+### Configure Cargo
+
+Add to `~/.cargo/config.toml`:
+
+```toml
+[registries.meuse]
+index = "http://localhost:8180/myindex.git"
+
+[net]
+git-fetch-with-cli = true  # Required for HTTP authentication
+```
+
+### Create Authentication Token
+
+```bash
+# Using the API (replace with your admin credentials)
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"name":"my_token","validity":365,"user":"admin","password":"admin_production_password_2024"}' \
+  http://localhost:8855/api/v1/meuse/token
+```
+
+Add the token to `~/.cargo/credentials.toml`:
+
+```toml
+[registries.meuse]
+token = "your-token-here"
+```
+
+### Publish a Crate
+
+```bash
+# In your Rust project
+cargo publish --registry meuse
+```---
 title: Docker Deployment
 weight: 25
 disableToc: false
@@ -6,208 +41,221 @@ disableToc: false
 
 # Docker Deployment
 
-This guide explains how to deploy Meuse using Docker Compose, which provides a complete environment with PostgreSQL, Git
-HTTP server, and the Meuse application.
+This guide explains how to deploy Meuse using Docker Compose with automatic initialization. The setup includes PostgreSQL, Git HTTP server, and the Meuse application, all configured to work together seamlessly.
 
 ## Prerequisites
 
 - Docker and Docker Compose installed
-- Git installed (for initial repository setup)
 - Basic understanding of Docker concepts
 
 ## Quick Start
 
-1. **Clone the repository**
+### Step 1: Clone and Configure
 
+```bash
+# Clone the repository
+git clone https://github.com/mcorbin/meuse.git
+cd meuse
+
+# Copy environment configuration
+cp .env.example .env
+```
+
+### Step 2: Configure Environment
+
+Edit the `.env` file to customize your deployment:
+
+```bash
+# Edit with your preferred editor
+nano .env  # or vim, code, etc.
+```
+
+Key settings to review:
+
+- `DOMAIN`: Your domain name (default: localhost)
+- `REGISTRY_URL`: The Meuse registry URL
+- `CARGO_API_URL`: The Cargo API endpoint
+- `GIT_USER` and `GIT_PASSWORD`: Git HTTP authentication credentials
+- Database passwords and other security settings
+
+### Step 3: Generate Git Authentication
+
+Before starting the services, generate the htpasswd file for Git HTTP authentication:
+
+```bash
+./scripts/gen-htpasswd.sh
+```
+
+This script will:
+
+- Read credentials from your `.env` file
+- Generate an htpasswd file for nginx authentication
+- Store it in `git-data/htpasswd`
+
+### Step 4: Start Services
+
+```bash
+docker compose up -d
+```
+
+On first run, the Meuse container will automatically:
+
+- Initialize a bare Git repository at `/app/git-data/myindex.git`
+- Create the required `config.json` with your registry URLs
+- Set up proper permissions
+- Create the crates storage directory
+
+### Step 5: Verify Deployment
+
+```bash
+# Check all services are running
+docker compose ps
+
+# Check Meuse logs for initialization
+docker compose logs meuse
+
+# Test the health endpoint
+curl http://localhost:8855/healthz
+```
+
+You should see three healthy services:
+
+- `meuse-postgres` - PostgreSQL database
+- `meuse-git-server` - Git HTTP server
+- `meuse-app` - The Meuse application
+
+## Manual Setup (Advanced)
+
+If you prefer manual initialization without the automatic setup:
+
+1. Set environment variable before starting:
    ```bash
-   git clone https://github.com/mcorbin/meuse.git
-   cd meuse
-   ```
-
-2. **Use the initialization script**
-
-   The easiest way to set up everything is to use the provided initialization script:
-
-   ```bash
-   ./scripts/init-docker-env.sh
-   ```
-
-   This script will:
-    - Create a `.env` file from `.env.example` if it doesn't exist
-    - Create the necessary directories (`git-data`, `crates`)
-    - Initialize a bare Git repository
-    - Create and copy the `config.json` file for Cargo
-    - Generate the `htpasswd` file for Git HTTP authentication
-    - Check if Docker is running
-
-   After running the script, review the `.env` file and adjust any settings as needed.
-
-3. **Start the services**
-
-   ```bash
+   export SKIP_GIT_INIT=true
    docker compose up -d
    ```
 
-4. **Update Git repository for HTTP access**
+2. Manually initialize the Git repository as needed
 
-   ```bash
-   docker compose exec git-server bash -c 'cd /srv/git/myindex.git && git update-server-info'
-   ```
+## How It Works
 
-5. **Verify services are running**
+### Automatic Initialization
 
-   ```bash
-   docker compose ps
-   ```
+The Meuse container uses an entrypoint script that:
 
-## Manual Setup (Alternative)
+1. **Checks for existing setup**: On startup, it checks if `/app/git-data/myindex.git` exists
+2. **Initializes if needed**: If not found, it automatically:
+    - Creates a bare Git repository
+    - Generates `config.json` using environment variables
+    - Commits the configuration to the repository
+    - Sets proper permissions for the meuse user
+3. **Skips if exists**: On subsequent restarts, initialization is skipped
 
-If you prefer to set up everything manually, follow these steps instead of using the initialization script:
-
-1. **Prepare environment variables**
-
-   ```bash
-   cp .env.example .env
-   # Edit .env to customize settings
-   ```
-
-2. **Create required directories and setup Git repository**
-
-   ```bash
-   # Create directories
-   mkdir -p git-data crates
-   
-   # Initialize Git repository
-   cd git-data
-   git init --bare myindex.git
-   
-   # Create config.json for Cargo
-   echo '{
-     "dl": "http://localhost:8855/api/v1/crates",
-     "api": "http://localhost:8855",
-     "allowed-registries": ["https://github.com/rust-lang/crates.io-index"]
-   }' > config.json
-   
-   # Copy config into repository
-   cp config.json myindex.git/
-   cd ..
-   ```
-
-3. **Generate htpasswd file for Git HTTP authentication**
-
-   ```bash
-   ./scripts/gen-htpasswd.sh
-   ```
-
-4. **Start the services and update Git repository** as described in steps 3-5 above.
+This means you can destroy and recreate containers without losing data (volumes persist), and new deployments
+automatically set themselves up.
 
 ## Configuration
 
 ### Environment Variables
 
-All configuration is managed through environment variables in the `.env` file. The main groups are:
+The deployment is configured entirely through environment variables in `.env`:
 
-1. **PostgreSQL settings**
-    - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`: Database credentials
-    - `POSTGRES_HOST`, `POSTGRES_PORT`: Connection settings
-    - `POSTGRES_POOL_SIZE`: Connection pool size
+#### Core Configuration
 
-2. **Git HTTP server settings**
-    - `GIT_USER`, `GIT_PASSWORD`: Authentication credentials
-    - `GIT_PORT`: Port to expose the Git HTTP server
+- `DOMAIN`: Your domain name
+- `REGISTRY_URL`: Full URL to your Meuse instance
+- `CARGO_API_URL`: API endpoint for Cargo
 
-3. **Meuse application settings**
-    - `MEUSE_PORT`: HTTP port for Meuse API
-    - `MEUSE_LOG_LEVEL`: Logging level
-    - `MEUSE_JAVA_OPTS`: Java VM options
+#### Service Ports
 
-4. **Git index configuration**
-    - `GIT_INDEX_PATH`: Path to the Git index repository
-    - `GIT_TARGET`: Git branch/ref to use
-    - `GIT_INDEX_URL`: URL where the Git index is available
+- `MEUSE_PORT`: Meuse HTTP port (default: 8855)
+- `GIT_PORT`: Git HTTP server port (default: 8180)
+- `POSTGRES_PORT`: PostgreSQL port (default: 5432)
 
-5. **Crate storage**
-    - `CRATES_PATH`: Path to store crate files
+#### Authentication
 
-6. **Frontend settings**
-    - `FRONTEND_ENABLED`: Enable or disable the frontend
-    - `FRONTEND_PUBLIC`: Whether to make the frontend public
-    - `FRONTEND_SECRET`: Secret key for frontend sessions
+- `GIT_USER` / `GIT_PASSWORD`: Git HTTP authentication
+- `ADMIN_USER` / `ADMIN_PASSWORD`: Initial admin user
+- `TECH_USER` / `TECH_PASSWORD`: Technical user for CI/CD
+- `READ_USER` / `READ_PASSWORD`: Read-only user
 
-7. **Initial users**
-    - `ADMIN_USER`, `ADMIN_PASSWORD`: Admin user credentials
-    - `TECH_USER`, `TECH_PASSWORD`: Technical user credentials
-    - `READ_USER`, `READ_PASSWORD`: Read-only user credentials
+#### Storage
 
-8. **Optional S3 storage**
-    - `S3_ACCESS_KEY`, `S3_SECRET_KEY`: S3 credentials
-    - `S3_ENDPOINT`, `S3_BUCKET`: S3 configuration
-
-### Docker Compose Services
-
-The deployment consists of three main services:
-
-1. **postgres**: PostgreSQL database server
-2. **git-server**: Nginx with git-http-backend for Git HTTP access
-3. **meuse**: The Meuse application itself
+- Crate files: Docker volume `meuse_crates`
+- Git data: Docker volume `meuse_git_data`
+- PostgreSQL: Docker volume `pg_data`
 
 ## Volume Management
 
-The Docker setup uses volumes for persistent data:
+Data persistence is handled through Docker volumes:
 
-- **PostgreSQL data**: Stored in a named volume `pg_data`
-- **Git repositories**: Stored in `./git-data` directory
-- **Crate files**: Stored in `./crates` directory
+- `meuse_git_data`: Git repositories and htpasswd
+- `meuse_crates`: Crate binary files
+- `pg_data`: PostgreSQL database
 
-## Security Considerations
+To backup:
 
-1. **Passwords**: Change all default passwords in the `.env` file
-2. **HTTPS**: For production, consider adding HTTPS termination
-3. **Network isolation**: In production, use Docker networks to isolate services
-4. **Backups**: Regularly backup the PostgreSQL data, Git repositories, and crate files
+```bash
+docker run --rm -v meuse_git_data:/data -v $(pwd):/backup alpine tar czf /backup/git-data-backup.tar.gz -C /data .
+docker run --rm -v meuse_crates:/data -v $(pwd):/backup alpine tar czf /backup/crates-backup.tar.gz -C /data .
+```
+
+## Production Considerations
+
+1. **Use strong passwords**: Update all default passwords in `.env`
+2. **Enable HTTPS**: Use a reverse proxy with SSL termination
+3. **Regular backups**: Implement automated backup of volumes
+4. **Monitor services**: Set up monitoring for all components
+5. **Resource limits**: Add resource constraints to docker-compose.yml
 
 ## Troubleshooting
 
-### Common Issues
+### Git Repository Not Initializing
 
-1. **Database connection errors**
-    - Check if PostgreSQL is running: `docker compose ps postgres`
-    - Verify database credentials in `.env`
+Check the Meuse container logs:
 
-2. **Git HTTP server issues**
-    - Regenerate htpasswd: `./scripts/gen-htpasswd.sh`
-    - Run git update-server-info:
-      `docker compose exec git-server bash -c 'cd /srv/git/myindex.git && git update-server-info'`
+```bash
+docker compose logs meuse | grep INIT
+```
 
-3. **Meuse application errors**
-    - Check logs: `docker compose logs meuse`
-    - Verify configuration in `.env`
+### Authentication Issues
 
-## Production Deployment
+1. Regenerate htpasswd:
+   ```bash
+   ./scripts/gen-htpasswd.sh
+   docker compose restart git-server
+   ```
 
-For production deployment, consider the following enhancements:
+2. Verify Git server access:
+   ```bash
+   git clone http://gituser@localhost:8180/myindex.git test-repo
+   ```
 
-1. **Use a reverse proxy** with HTTPS termination (Nginx, Traefik)
-2. **Implement regular backups** for all persistent data
-3. **Set up monitoring** using Prometheus (Meuse exposes metrics)
-4. **Use Docker secrets** for sensitive configuration
-5. **Configure resource limits** for containers
+### Database Connection Errors
+
+1. Check PostgreSQL is running:
+   ```bash
+   docker compose ps postgres
+   ```
+
+2. Test connection:
+   ```bash
+   docker compose exec postgres psql -U meuse -d meuse -c "SELECT 1"
+   ```
+
 
 ## Upgrading
 
-To upgrade to a new version of Meuse:
+To upgrade Meuse:
 
-1. Pull the latest changes:
-   ```bash
-   git pull
-   ```
+```bash
+# Pull latest changes
+git pull
 
-2. Rebuild the Meuse image:
-   ```bash
-   docker compose build meuse
-   ```
+# Update container image
+docker compose pull meuse
 
-3. Restart the services:
-   ```bash
-   docker compose up -d
-   ```
+# Restart with new version
+docker compose up -d
+```
+
+The automatic initialization will be skipped if the Git repository already exists, preserving your data.
