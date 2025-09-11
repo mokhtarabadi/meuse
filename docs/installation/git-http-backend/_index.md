@@ -33,6 +33,15 @@ cp .env.example .env
 ./scripts/gen-htpasswd.sh
 ```
 
+NOTE: the repository now supports running the git server together with Postgres via the main
+`docker-compose.yml`. If you prefer using that single compose file, start both services with:
+
+```bash
+docker compose up -d postgres git-server
+```
+
+If you use the combined compose, the git server will mount `./git-data` in the project root.
+
 3. Create a workspace for repositories and initialize the index repo (example):
 
 ```bash

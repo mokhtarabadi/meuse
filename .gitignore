@@ -16,4 +16,8 @@ dev/resources/config.yaml
 .idea/
 index/
 crates/
+git-data/
+.env
+/.env
+git-data/htpasswd
 git-repos/
