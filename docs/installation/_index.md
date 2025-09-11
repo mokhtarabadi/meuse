@@ -17,3 +17,4 @@ In this section, you will learn how to install and configure Meuse.
 - [Launch it](./launch-it/): How to launch Meuse
 - [Mirroring](./mirroring/): Configure Meuse to mirror crates.io
 - [Monitoring](./monitoring/): Monitor Meuse
+- [GitHub Actions](./github-actions/): Automatically build and push Docker images
