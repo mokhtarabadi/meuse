@@ -29,8 +29,8 @@ logging:
 
 metadata:
   type: "shell"
-  path: "./index"
-  target: "master"
+  path: "/home/mohammad/Develop/Projects/meuse/git-repos/index-workspace"
+  target: "origin/master"
   url: "http://localhost:8855/index"
 
 crate:

@@ -16,3 +16,4 @@ dev/resources/config.yaml
 .idea/
 index/
 crates/
+git-repos/
