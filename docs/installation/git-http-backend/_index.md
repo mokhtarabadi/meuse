@@ -100,3 +100,36 @@ Troubleshooting
 - If you get permission or authentication errors, check `git-data/htpasswd` and try cloning with `curl -u user:pass` to
   ensure HTTP auth works.
 - Ensure the git http backend image you run supports `receive-pack` (push) and has `git-http-backend` enabled.
+
+Publishing workflow (tokens + Cargo)
+
+1. Create an admin token via Meuse API (replace credentials):
+
+```bash
+curl -s -X POST -H "Content-Type: application/json" \
+  -d '{"name":"admin_token","validity":365,"user":"admin","password":"admin_password"}' \
+  http://localhost:8855/api/v1/meuse/token
+```
+
+2. Add the returned token to your `~/.cargo/credentials.toml`:
+
+```toml
+[registries.meuse]
+token = "<token-from-response>"
+```
+
+3. Ensure your `~/.cargo/config.toml` points to the HTTP index URL:
+
+```toml
+[registries.meuse]
+index = "http://<your-git-host>:8180/myindex.git"
+```
+
+4. Publish as usual:
+
+```bash
+cargo publish --registry meuse
+```
+
+This flow uses HTTP Basic auth only for git index push operations; publishing crates still requires Meuse API token for
+crate uploads.
