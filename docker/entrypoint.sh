@@ -39,22 +39,24 @@ EOF
     
     # Add config.json to the repository
     BLOB_HASH=$(git hash-object -w /tmp/config.json)
-    TREE_HASH=$(echo -e "100644 blob ${BLOB_HASH}\tconfig.json" | git mktree)
+    # Use POSIX-compliant printf instead of echo -e for mktree
+    TREE_HASH=$(printf "100644 blob ${BLOB_HASH}\tconfig.json\n" | git mktree)
     COMMIT_HASH=$(git commit-tree "${TREE_HASH}" -m "Initialize registry with config.json")
     git update-ref refs/heads/master "${COMMIT_HASH}"
     git update-server-info
     
     # Set correct permissions
     chown -R meuse:meuse /app/git-data
-    
+
     echo "[INIT] Git repository initialized successfully"
     cd /app
 else
     echo "[INFO] Git repository already exists, skipping initialization"
 fi
 
-# Ensure correct ownership
-chown -R meuse:meuse /app/git-data /app/crates /app/config
+# Ensure correct ownership (skip config.yaml chown, may be RO bind)
+chown -R meuse:meuse /app/git-data /app/crates
+# chown meuse:meuse /app/config/config.yaml || true  # Commented out to avoid read-only error
 
 # Check if the command starts with "java" and inject JAVA_OPTS if needed
 if [ "$1" = "java" ] && [ -n "${JAVA_OPTS}" ]; then
