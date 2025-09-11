@@ -7,6 +7,7 @@
             [environ.core :refer [env]]
             [mount.core :refer [defstate]]
             [unilog.config :refer [start-logging!]]
+    [clojure.string :as str]
             [yummy.config :as yummy]))
 
 (defn stop!
@@ -17,18 +18,24 @@
 (defn- convert-string-to-appropriate-type
        "Convert string values to appropriate types based on their content.
         This is needed because environment variables loaded through !envvar
-        are always treated as strings, but some values need to be numbers or booleans."
+        are always treated as strings, but some values need to be numbers, booleans, or nil."
        [value]
        (cond
          ;; If it's not a string, return as is
          (not (string? value)) value
 
-         ;; Convert "true" and "false" to boolean values
-         (= "true" value) true
-         (= "false" value) false
+         ;; Convert "true" and "false" (any case) to boolean values
+         (= (str/lower-case value) "true") true
+         (= (str/lower-case value) "false") false
+
+         ;; Convert "nil" string (any case) to nil
+         (= (str/lower-case value) "nil") nil
 
          ;; Try to convert to integer if it matches a number pattern
-         (re-matches #"^\d+$" value) (Integer/parseInt value)
+         (re-matches #"^-?\d+$" value) (Integer/parseInt value)
+
+         ;; Try to convert to double if it matches decimal pattern
+         (re-matches #"^-?\d+\.\d+$" value) (Double/parseDouble value)
 
          ;; Otherwise keep as string
          :else value))
@@ -67,6 +74,7 @@
            ;; Validate against spec after type conversion
            (try
              (yummy/validate config ::spec/config)
+             config
              (catch Exception e
                (let [error-msg (str "fail to load config: validation\n"
                                     "config path = "
