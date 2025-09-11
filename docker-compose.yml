@@ -33,9 +33,7 @@ services:
       - ./docker/git/default.conf:/etc/nginx/conf.d/default.conf:ro
 
   meuse:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/mokhtarabadi/meuse:latest
     container_name: meuse-app
     restart: unless-stopped
     ports:

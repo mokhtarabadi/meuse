@@ -1,0 +1,71 @@
+# Git and Version Control
+.git/
+.github/
+.gitignore
+.hg/
+.hgignore
+
+# Build artifacts and dependencies
+/target/
+/classes/
+/checkouts/
+profiles.clj
+pom.xml
+pom.xml.asc
+*.jar
+*.class
+/.lein-*
+/.nrepl-port
+
+# IDE and editor files
+*.iml
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+*~
+
+# Docker files (to prevent recursive context)
+.dockerignore
+Dockerfile
+docker-compose.yml
+docker-compose.*.yml
+
+# Test and development
+test/resources/tmp/
+dev/resources/config.yaml
+
+# Environment files
+.env
+/.env
+*.env
+
+# Project-specific directories
+# Note: These are mounted as volumes in docker-compose.yml
+# but kept in the image for compatibility
+# git-data/
+# crates/
+index/
+git-repos/
+
+# Documentation and non-essential files
+README.md
+LICENSE
+*.md
+docs/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+logs/
+log/
+
+# Large or unnecessary binary files
+*.pdf
+*.gz
+*.zip
+*.tar
+*.rar
+*.mp4
