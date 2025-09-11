@@ -95,11 +95,57 @@ index = "http://<host>:8180/myindex.git"
 8. To publish via Cargo you will still need a token in `~/.cargo/credentials.toml` as usual; the Git index only provides
    crate metadata.
 
-Troubleshooting
+## Troubleshooting
 
-- If you get permission or authentication errors, check `git-data/htpasswd` and try cloning with `curl -u user:pass` to
-  ensure HTTP auth works.
-- Ensure the git http backend image you run supports `receive-pack` (push) and has `git-http-backend` enabled.
+If you encounter issues with the git HTTP backend, here are some common troubleshooting steps:
+
+### Verify the htpasswd file
+
+Make sure the `htpasswd` file is a file, not a directory. If you encounter an error in the logs about "htpasswd is a
+directory", remove it and regenerate:
+
+```bash
+rm -rf git-data/htpasswd 
+./scripts/gen-htpasswd.sh
+```
+
+### Enable git dumb HTTP server info
+
+For git over HTTP to work properly, the git repository needs some extra files in the `info` directory. Run this command
+to update them:
+
+```bash
+docker compose exec git-server bash -c 'cd /srv/git/myindex.git && git update-server-info'
+```
+
+### Check the nginx configuration
+
+The git HTTP backend needs specific URL patterns to work correctly. The key part is the regular expression matching for
+git HTTP protocol URLs:
+
+```nginx
+location ~ (/.*\.git/git-(upload|receive)-pack)|(/.*\.git/info/refs\?service=git-(upload|receive)-pack) {
+  # configuration...  
+}
+```
+
+### Test with curl
+
+You can test the git HTTP backend using curl from inside the container:
+
+```bash
+docker compose exec git-server curl -u gituser:password http://localhost:80/myindex.git/info/refs?service=git-upload-pack
+```
+
+If this returns a git protocol response (not HTML), then the git HTTP backend is working correctly.
+
+### Debugging git operations
+
+If git clone or push operations fail, try adding verbose output:
+
+```bash
+GIT_CURL_VERBOSE=1 git clone http://gituser:password@localhost:8180/myindex.git
+```
 
 Publishing workflow (tokens + Cargo)
 
