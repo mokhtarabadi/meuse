@@ -4,178 +4,328 @@ weight: 20
 disableToc: false
 ---
 
-# Git HTTP backend (nginx + htpasswd)
+# Git HTTP Backend Server for Meuse
 
-This document explains how to run a minimal Git HTTP server using an nginx+git-http-backend image and HTTP basic
-authentication (htpasswd). This is a lightweight option to host the Cargo index for Meuse.
+This document explains how to run and configure a lightweight Git HTTP server using nginx and git-http-backend with
+basic authentication. This is an optimal solution for hosting your Cargo index repository when running a private Meuse
+registry.
 
-Files added to the repo:
+## Overview
 
-- `docker-compose.git.yml` — Docker Compose service for the git HTTP server.
-- `scripts/gen-htpasswd.sh` — helper script that generates `git-data/htpasswd` from `.env` using `htpasswd`.
-- `.env.example` — example environment variables (username/password/port).
+The Git HTTP backend solution:
 
-Important: the generated `git-data/htpasswd` contains password hashes and must NOT be committed. Keep credentials out of
-version control.
+- Uses nginx with git-http-backend CGI script
+- Provides HTTP basic authentication via htpasswd
+- Requires minimal resources compared to full Git servers
+- Supports the Git smart HTTP protocol (git clone/push over HTTP)
+- Works with Cargo's registry index requirements
 
-Steps to set up (manual, do not start services automatically):
+## Getting Started
 
-1. Copy the example env and set credentials:
+### Prerequisites
 
-```bash
-cp .env.example .env
-# Edit .env: set GIT_USER and GIT_PASSWORD
+- Docker and Docker Compose
+- The Meuse repository cloned locally
+
+### Configuration Files
+
+- `docker-compose.yml` — Contains the git-server service definition
+- `docker/git/default.conf` — Nginx configuration with git-http-backend setup
+- `scripts/gen-htpasswd.sh` — Helper script to generate authentication credentials
+- `.env.example` — Example environment variables file (copy to `.env`)
+
+### Initial Setup
+
+1. **Set up credentials**
+
+   ```bash
+   # Copy environment example file
+   cp .env.example .env
+   
+   # Edit .env to set your credentials
+   # GIT_USER=your_username
+   # GIT_PASSWORD=your_secure_password
+   # GIT_PORT=8180 (default port)
+   
+   # Generate htpasswd file
+   ./scripts/gen-htpasswd.sh
+   ```
+
+2. **Create the Git index repository**
+
+   ```bash
+   # Create directory for repositories
+   mkdir -p git-data
+   
+   # Create bare repository for the Cargo index
+   cd git-data
+   git init --bare myindex.git
+   cd -
+   
+   # Add config.json to the repository (required by Cargo)
+   echo '{
+     "dl": "http://localhost:8855/api/v1/crates",
+     "api": "http://localhost:8855",
+     "allowed-registries": ["https://github.com/rust-lang/crates.io-index"]
+   }' > git-data/config.json
+   
+   # Copy config.json into the repository
+   cp git-data/config.json git-data/myindex.git/
+   ```
+
+3. **Start the Git HTTP server**
+
+   ```bash
+   docker compose up -d git-server
+   ```
+
+4. **Update Git server repository info**
+
+   This step is essential for the Git HTTP protocol to work properly:
+
+   ```bash
+   docker compose exec git-server bash -c 'cd /srv/git/myindex.git && git update-server-info'
+   ```
+
+5. **Test the Git server**
+
+   ```bash
+   # Test cloning (will prompt for password)
+   git clone http://your_username@localhost:8180/myindex.git test-clone
+   
+   # Or with embedded credentials (for scripts/automation)
+   git clone http://your_username:your_password@localhost:8180/myindex.git test-clone
+   ```
+
+## Integrating with Meuse
+
+### Configure Meuse to use the Git HTTP server
+
+Update your Meuse configuration (e.g., `config/init_users_config.yaml`) to use the Git HTTP server:
+
+```yaml
+metadata:
+  type: "shell"
+  path: "/absolute/path/to/meuse/git-data/myindex.git"
+  target: "master"
+  url: "http://localhost:8180/myindex.git"
 ```
 
-2. Generate the `htpasswd` file (this uses Docker to run `htpasswd`):
+Note the important settings:
 
-```bash
-./scripts/gen-htpasswd.sh
-```
+- `path`: Absolute path to the local git repository
+- `target`: For a non-bare repo, use "origin/master". For a bare repo use "master"
+- `url`: The HTTP URL of your git server (what Cargo clients will use)
 
-NOTE: the repository now supports running the git server together with Postgres via the main
-`docker-compose.yml`. If you prefer using that single compose file, start both services with:
+### Starting Both Services
+
+To start both PostgreSQL and the Git HTTP server:
 
 ```bash
 docker compose up -d postgres git-server
 ```
 
-If you use the combined compose, the git server will mount `./git-data` in the project root.
-
-3. Create a workspace for repositories and initialize the index repo (example):
+### Start Meuse
 
 ```bash
-mkdir -p git-data
-cd git-data
-# create a bare repo for the Cargo index
-git init --bare myindex.git
-cd -
+export MEUSE_CONFIGURATION=config/init_users_config.yaml
+lein run
 ```
 
-4. Configure Meuse to use the Git index over HTTP. In your Meuse config (e.g. `config/config.yaml` or
-   `config/init_users_config.yaml`) set the metadata section:
+## Client Setup
 
-```yaml
-metadata:
-  type: "shell"
-  # For Meuse's local operations you can clone/push against the HTTP URL below
-  url: "http://<host>:8180/myindex.git"
-  # If you use a workspace clone, set path to a local clone for Meuse to operate on
-  path: "/absolute/path/to/your/local/clone"
-  target: "origin/master"
-```
+### Configure Cargo
 
-Note: Meuse needs push access to the index. If Meuse runs on a separate host, configure credentials for Meuse's user (
-use a deploy account). You can encode the credentials in the URL for server-to-server pushes (e.g.
-`https://user:pass@host/myindex.git`), but prefer using a credential helper or deploy user.
+1. **Create API token**
 
-5. Start the git server (manual):
+   Generate a token using Meuse API (replace with actual admin credentials):
 
-```bash
-docker compose -f docker-compose.git.yml up -d git-server
-```
+   ```bash
+   curl -s -X POST -H "Content-Type: application/json" \
+     -d '{"name":"admin_token","validity":365,"user":"admin","password":"admin_password"}' \
+     http://localhost:8855/api/v1/meuse/token
+   ```
 
-6. Verify you can clone the repo (from a client machine):
+2. **Configure Cargo credentials**
 
-```bash
-git clone http://$GIT_USER@$HOST:8180/myindex.git
-# or if using password prompt
-git clone http://$HOST:8180/myindex.git
-```
+   In `~/.cargo/credentials.toml`:
 
-7. Configure Cargo to use the index (on developer machines):
+   ```toml
+   [registries.meuse]
+   token = "your-token-from-api-response"
+   ```
 
-`~/.cargo/config.toml`:
+3. **Configure Cargo registry**
+
+   In `~/.cargo/config.toml`:
+
+   ```toml
+   [registries.meuse]
+   index = "http://localhost:8180/myindex.git"
+   
+   # Enable git-fetch-with-cli for HTTP authentication
+   [net]
+   git-fetch-with-cli = true
+   ```
+
+### Publishing Crates
+
+1. **Create a crate**
+
+   ```bash
+   cargo new --lib my-crate
+   cd my-crate
+   ```
+
+2. **Update Cargo.toml**
+
+   ```toml
+   [package]
+   name = "my-crate"
+   version = "0.1.0"
+   edition = "2021"
+   description = "My private crate"
+   license = "MIT"
+   
+   [dependencies]
+   
+   [package.metadata.registry]
+   publish = ["meuse"]
+   ```
+
+3. **Publish the crate**
+
+   ```bash
+   cargo publish --registry meuse
+   ```
+
+### Using Published Crates
+
+In another project's `Cargo.toml`:
 
 ```toml
-[registries.meuse]
-index = "http://<host>:8180/myindex.git"
+[dependencies]
+my-crate = { version = "0.1.0", registry = "meuse" }
 ```
-
-8. To publish via Cargo you will still need a token in `~/.cargo/credentials.toml` as usual; the Git index only provides
-   crate metadata.
 
 ## Troubleshooting
 
-If you encounter issues with the git HTTP backend, here are some common troubleshooting steps:
+### Common Issues
 
-### Verify the htpasswd file
+#### Authentication Problems
 
-Make sure the `htpasswd` file is a file, not a directory. If you encounter an error in the logs about "htpasswd is a
-directory", remove it and regenerate:
+- **Symptom**: 401 Unauthorized when cloning or pushing
+- **Solution**: Regenerate htpasswd file and restart git-server
+  ```bash
+  rm -rf git-data/htpasswd
+  ./scripts/gen-htpasswd.sh
+  docker compose restart git-server
+  ```
+
+#### 404 Not Found for Git Protocol URLs
+
+- **Symptom**: 404 errors when accessing `info/refs?service=git-upload-pack`
+- **Solution**: Ensure git update-server-info was run and restart the server
+  ```bash
+  docker compose exec git-server bash -c 'cd /srv/git/myindex.git && git update-server-info'
+  docker compose restart git-server
+  ```
+
+#### Cargo Authentication Issues
+
+- **Symptom**: Cargo cannot fetch index or publish crates
+- **Solution**: Enable git-fetch-with-cli in Cargo config
+  ```toml
+  [net]
+  git-fetch-with-cli = true
+  ```
+
+#### Git Server Not Starting
+
+- **Symptom**: git-server container fails to start
+- **Solution**: Check logs and verify the nginx configuration
+  ```bash
+  docker compose logs git-server
+  ```
+
+#### Cannot Push to Repository
+
+- **Symptom**: Git push operations fail with "not found" or permission errors
+- **Solution**: Check repository permissions and nginx configuration
+  ```bash
+  docker compose exec git-server ls -la /srv/git/myindex.git
+  ```
+
+### Debugging
+
+- **Check nginx logs**:
+  ```bash
+  docker compose exec git-server cat /var/log/nginx/error.log
+  ```
+
+- **Test git-http-backend with curl**:
+  ```bash
+  docker compose exec git-server curl -u username:password http://localhost/myindex.git/info/refs?service=git-upload-pack
+  ```
+
+- **Enable verbose Git output**:
+  ```bash
+  GIT_CURL_VERBOSE=1 git clone http://username:password@localhost:8180/myindex.git
+  ```
+
+## Security Considerations
+
+### Production Recommendations
+
+1. **Use HTTPS**: Add TLS termination using either:
+    - A reverse proxy in front of the git-server
+    - Configuring nginx with SSL certificates
+
+2. **Credential Management**:
+    - Use dedicated service accounts with restricted permissions
+    - Rotate credentials regularly
+    - Consider using deploy tokens for CI/CD pipelines
+
+3. **Monitoring**:
+    - Monitor failed authentication attempts
+    - Set up rate limiting for auth endpoints
+
+4. **Backup Strategy**:
+    - Regularly backup the git-data directory
+    - Ensure backups are secured appropriately
+
+## Advanced Configuration
+
+### Custom nginx Configuration
+
+The default nginx configuration is mounted from `docker/git/default.conf`. You can customize this file to add features
+like:
+
+- TLS/HTTPS support
+- Additional security headers
+- Rate limiting
+- Access control
+
+### Multiple Repositories
+
+You can host multiple Git repositories by creating additional bare repos in the `git-data` directory:
 
 ```bash
-rm -rf git-data/htpasswd 
-./scripts/gen-htpasswd.sh
+cd git-data
+git init --bare another-repo.git
 ```
 
-### Enable git dumb HTTP server info
+They will be automatically accessible via `http://localhost:8180/another-repo.git`.
 
-For git over HTTP to work properly, the git repository needs some extra files in the `info` directory. Run this command
-to update them:
+## Summary
 
-```bash
-docker compose exec git-server bash -c 'cd /srv/git/myindex.git && git update-server-info'
-```
+The Git HTTP backend with nginx provides a lightweight and effective solution for hosting your Cargo index repository.
+It offers:
 
-### Check the nginx configuration
+- Simple authentication via htpasswd
+- Easy integration with Meuse
+- Low resource usage
+- Compatibility with Cargo and Git clients
 
-The git HTTP backend needs specific URL patterns to work correctly. The key part is the regular expression matching for
-git HTTP protocol URLs:
-
-```nginx
-location ~ (/.*\.git/git-(upload|receive)-pack)|(/.*\.git/info/refs\?service=git-(upload|receive)-pack) {
-  # configuration...  
-}
-```
-
-### Test with curl
-
-You can test the git HTTP backend using curl from inside the container:
-
-```bash
-docker compose exec git-server curl -u gituser:password http://localhost:80/myindex.git/info/refs?service=git-upload-pack
-```
-
-If this returns a git protocol response (not HTML), then the git HTTP backend is working correctly.
-
-### Debugging git operations
-
-If git clone or push operations fail, try adding verbose output:
-
-```bash
-GIT_CURL_VERBOSE=1 git clone http://gituser:password@localhost:8180/myindex.git
-```
-
-Publishing workflow (tokens + Cargo)
-
-1. Create an admin token via Meuse API (replace credentials):
-
-```bash
-curl -s -X POST -H "Content-Type: application/json" \
-  -d '{"name":"admin_token","validity":365,"user":"admin","password":"admin_password"}' \
-  http://localhost:8855/api/v1/meuse/token
-```
-
-2. Add the returned token to your `~/.cargo/credentials.toml`:
-
-```toml
-[registries.meuse]
-token = "<token-from-response>"
-```
-
-3. Ensure your `~/.cargo/config.toml` points to the HTTP index URL:
-
-```toml
-[registries.meuse]
-index = "http://<your-git-host>:8180/myindex.git"
-```
-
-4. Publish as usual:
-
-```bash
-cargo publish --registry meuse
-```
-
-This flow uses HTTP Basic auth only for git index push operations; publishing crates still requires Meuse API token for
-crate uploads.
+For most private registry use cases, this solution is sufficient and more efficient than running a full-featured Git
+server.

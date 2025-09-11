@@ -12,6 +12,7 @@ In this section, you will learn how to install and configure Meuse.
 - [Requirements](./requirements/): The Meuse requirements
 - [Get Meuse](./get-meuse/): How to get Meuse
 - [Configuration](./configuration/): How to configure Meuse
+- [Git HTTP Backend](./git-http-backend/): Set up a lightweight Git server for your registry index
 - [Launch it](./launch-it/): How to launch Meuse
 - [Mirroring](./mirroring/): Configure Meuse to mirror crates.io
 - [Monitoring](./monitoring/): Monitor Meuse
