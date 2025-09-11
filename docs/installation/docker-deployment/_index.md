@@ -24,14 +24,54 @@ HTTP server, and the Meuse application.
    cd meuse
    ```
 
-2. **Prepare environment variables**
+2. **Use the initialization script**
+
+   The easiest way to set up everything is to use the provided initialization script:
+
+   ```bash
+   ./scripts/init-docker-env.sh
+   ```
+
+   This script will:
+    - Create a `.env` file from `.env.example` if it doesn't exist
+    - Create the necessary directories (`git-data`, `crates`)
+    - Initialize a bare Git repository
+    - Create and copy the `config.json` file for Cargo
+    - Generate the `htpasswd` file for Git HTTP authentication
+    - Check if Docker is running
+
+   After running the script, review the `.env` file and adjust any settings as needed.
+
+3. **Start the services**
+
+   ```bash
+   docker compose up -d
+   ```
+
+4. **Update Git repository for HTTP access**
+
+   ```bash
+   docker compose exec git-server bash -c 'cd /srv/git/myindex.git && git update-server-info'
+   ```
+
+5. **Verify services are running**
+
+   ```bash
+   docker compose ps
+   ```
+
+## Manual Setup (Alternative)
+
+If you prefer to set up everything manually, follow these steps instead of using the initialization script:
+
+1. **Prepare environment variables**
 
    ```bash
    cp .env.example .env
    # Edit .env to customize settings
    ```
 
-3. **Create required directories and setup Git repository**
+2. **Create required directories and setup Git repository**
 
    ```bash
    # Create directories
@@ -53,29 +93,13 @@ HTTP server, and the Meuse application.
    cd ..
    ```
 
-4. **Generate htpasswd file for Git HTTP authentication**
+3. **Generate htpasswd file for Git HTTP authentication**
 
    ```bash
    ./scripts/gen-htpasswd.sh
    ```
 
-5. **Start the services**
-
-   ```bash
-   docker compose up -d
-   ```
-
-6. **Update Git repository for HTTP access**
-
-   ```bash
-   docker compose exec git-server bash -c 'cd /srv/git/myindex.git && git update-server-info'
-   ```
-
-7. **Verify services are running**
-
-   ```bash
-   docker compose ps
-   ```
+4. **Start the services and update Git repository** as described in steps 3-5 above.
 
 ## Configuration
 

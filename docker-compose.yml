@@ -12,6 +12,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-meuse}
     volumes:
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-meuse} -d ${POSTGRES_DB:-meuse}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   git-server:
     image: emarcs/nginx-git:latest
@@ -26,6 +31,11 @@ services:
       - ./docker/git/default.conf:/etc/nginx/conf.d/default.conf:ro
     environment:
       - GIT_POSTBUFFER=1048576
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   meuse:
     build:
@@ -43,8 +53,10 @@ services:
       - MEUSE_CONFIGURATION=/app/config/config.yaml
       - JAVA_OPTS=${MEUSE_JAVA_OPTS:--Xmx512m}
     depends_on:
-      - postgres
-      - git-server
+      postgres:
+        condition: service_healthy
+      git-server:
+        condition: service_healthy
 
 volumes:
   pg_data:
