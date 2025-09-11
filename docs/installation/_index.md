@@ -9,6 +9,7 @@ chapter: true
 In this section, you will learn how to install and configure Meuse.
 
 - [Quick Start Guide](./quick-start/): A streamlined guide to get Meuse running quickly
+- [Docker Deployment](./docker-deployment/): Full Docker Compose deployment with environment variables
 - [Requirements](./requirements/): The Meuse requirements
 - [Get Meuse](./get-meuse/): How to get Meuse
 - [Configuration](./configuration/): How to configure Meuse

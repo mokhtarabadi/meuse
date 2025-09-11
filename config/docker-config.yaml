@@ -1,0 +1,61 @@
+# Meuse Docker configuration file
+# Uses yummy's environment variable tags to load from environment
+
+database:
+  user: !envvar "POSTGRES_USER"
+  password: !envvar "POSTGRES_PASSWORD"
+  host: !envvar "POSTGRES_HOST"
+  port: !envvar "POSTGRES_PORT"
+  name: !envvar "POSTGRES_DB"
+  max-pool-size: !envvar "POSTGRES_POOL_SIZE"
+
+http:
+  address: "0.0.0.0"
+  port: !envvar "MEUSE_PORT"
+
+logging:
+  level: !envvar "MEUSE_LOG_LEVEL"
+  console:
+    encoder: "json"
+  overrides:
+    org.eclipse.jetty: "info"
+    com.zaxxer.hikari.pool.HikariPool: "info"
+    org.apache.http: "error"
+    io.netty.buffer.PoolThreadCache: "error"
+    org.eclipse.jgit.internal.storage.file.FileSnapshot: "info"
+    com.amazonaws.auth.AWS4Signer: "warn"
+    com.amazonaws.retry.ClockSkewAdjuster: "warn"
+    com.amazonaws.request: "warn"
+    com.amazonaws.requestId: "warn"
+
+metadata:
+  type: "shell"
+  path: !envvar "GIT_INDEX_PATH"
+  target: !envvar "GIT_TARGET"
+  url: !envvar "GIT_INDEX_URL"
+
+crate:
+  store: "filesystem"
+  path: !envvar "CRATES_PATH"
+
+frontend:
+  enabled: !envvar "FRONTEND_ENABLED"
+  public: !envvar "FRONTEND_PUBLIC"
+  secret: !envvar "FRONTEND_SECRET"
+
+# Initial users configuration
+init-users:
+  users:
+    - name: !envvar "ADMIN_USER"
+      password: !envvar "ADMIN_PASSWORD"
+      description: "Administrator user"
+      role: "admin"
+      active: true
+    - name: !envvar "TECH_USER"
+      password: !envvar "TECH_PASSWORD"
+      description: "Tech user with publish rights"
+      role: "tech"
+    - name: !envvar "READ_USER"
+      password: !envvar "READ_PASSWORD"
+      description: "Read-only user"
+      role: "read-only"

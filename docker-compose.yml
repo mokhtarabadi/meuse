@@ -2,18 +2,21 @@ version: '3.8'
 services:
   postgres:
     image: postgres:14.4
+    container_name: meuse-postgres
+    restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     environment:
-      POSTGRES_DB: meuse
-      POSTGRES_USER: meuse
-      POSTGRES_PASSWORD: meuse
+      POSTGRES_DB: ${POSTGRES_DB:-meuse}
+      POSTGRES_USER: ${POSTGRES_USER:-meuse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-meuse}
     volumes:
       - pg_data:/var/lib/postgresql/data
 
   git-server:
     image: emarcs/nginx-git:latest
     container_name: meuse-git-server
+    restart: unless-stopped
     ports:
       - "${GIT_PORT:-8180}:80"
     volumes:
@@ -23,9 +26,25 @@ services:
       - ./docker/git/default.conf:/etc/nginx/conf.d/default.conf:ro
     environment:
       - GIT_POSTBUFFER=1048576
+
+  meuse:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: meuse-app
     restart: unless-stopped
+    ports:
+      - "${MEUSE_PORT:-8855}:8855"
+    volumes:
+      - ./git-data:/app/git-data
+      - ./crates:/app/crates
+      - ./config/docker-config.yaml:/app/config/config.yaml:ro
+    environment:
+      - MEUSE_CONFIGURATION=/app/config/config.yaml
+      - JAVA_OPTS=${MEUSE_JAVA_OPTS:--Xmx512m}
+    depends_on:
+      - postgres
+      - git-server
+
 volumes:
   pg_data:
-
-  # Git HTTP server service (nginx + git-http-backend)
-  # This service hosts git repositories over HTTP with basic auth
