@@ -13,7 +13,7 @@ http:
   port: 8855
 
 logging:
-  level: "debug"
+  level: "info"
   console:
     encoder: "json"
   overrides:
@@ -29,9 +29,9 @@ logging:
 
 metadata:
   type: "shell"
-  path: "/home/mohammad/Develop/Projects/meuse/git-repos/index-workspace"
-  target: "origin/master"
-  url: "http://localhost:8855/index"
+  path: "/home/mohammad/Develop/Projects/meuse/git-data/myindex.git"
+  target: "master"
+  url: "http://localhost:8180/myindex.git"
 
 crate:
   store: "filesystem"
