@@ -1,0 +1,60 @@
+# Sample configuration with initial users
+
+database:
+  user: "meuse"
+  password: "meuse"
+  host: "localhost"
+  port: 5432
+  name: "meuse"
+  max-pool-size: 10
+
+http:
+  address: "0.0.0.0"
+  port: 8855
+
+logging:
+  level: "debug"
+  console:
+    encoder: "json"
+  overrides:
+    org.eclipse.jetty: "info"
+    com.zaxxer.hikari.pool.HikariPool: "info"
+    org.apache.http: "error"
+    io.netty.buffer.PoolThreadCache: "error"
+    org.eclipse.jgit.internal.storage.file.FileSnapshot: "info"
+    com.amazonaws.auth.AWS4Signer: "warn"
+    com.amazonaws.retry.ClockSkewAdjuster: "warn"
+    com.amazonaws.request: "warn"
+    com.amazonaws.requestId: "warn"
+
+metadata:
+  type: "shell"
+  path: "./index"
+  target: "master"
+  url: "http://localhost:8855/index"
+
+crate:
+  store: "filesystem"
+  path: "./crates"
+
+frontend:
+  enabled: true
+  public: true
+  secret: "uJo8QrRAANokteN_xVxpP75lc_A5Sw6t"
+
+# Initial users configuration
+init-users:
+  users:
+    - name: "admin"
+      password: "admin_password"
+      description: "Administrator user"
+      role: "admin"
+      active: true
+    - name: "tech_user"
+      password: "tech_password"
+      description: "Tech user with publish rights"
+      role: "tech"
+    - name: "reader"
+      password: "reader_password"
+      description: "Read-only user"
+      role: "read-only"

@@ -185,12 +185,29 @@
 (s/def :frontend/frontend
    (s/multi-spec frontend :public))
 
+;; initial users configuration
+(s/def :init-user/name ::non-empty-string)
+(s/def :init-user/password ::non-empty-string)
+(s/def :init-user/description ::non-empty-string)
+(s/def :init-user/role user-roles)
+(s/def :init-user/active ::boolean)
+
+(s/def :init-users/user (s/keys :req-un [:init-user/name
+                                       :init-user/password
+                                       :init-user/description
+                                       :init-user/role]
+                                :opt-un [:init-user/active]))
+
+(s/def :init-users/users (s/coll-of :init-users/user))
+(s/def :init-users/init-users (s/keys :req-un [:init-users/users]))
+
 (s/def ::config (s/keys :req-un [:http/http
                                  :db/database
                                  :metadata/metadata
                                  :crate/crate
                                  ::logging
-                                 :frontend/frontend]))
+                                 :frontend/frontend]
+                        :opt-un [:init-users/init-users]))
 
 ;; api
 

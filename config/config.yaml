@@ -1,0 +1,62 @@
+# Meuse production configuration for non-Docker deployment
+# This file should be customized for your deployment
+
+database:
+  user: "meuse"
+  password: "meuse"
+  host: "localhost"
+  port: 5432
+  name: "meuse"
+  max-pool-size: 10
+  # Optional: PostgreSQL schema
+  # schema: "meuse"
+
+http:
+  address: "0.0.0.0"
+  port: 8855
+
+logging:
+  level: "info"
+  console:
+    encoder: "json"
+  overrides:
+    org.eclipse.jetty: "info"
+    com.zaxxer.hikari.pool.HikariPool: "info"
+    org.apache.http: "error"
+    io.netty.buffer.PoolThreadCache: "error"
+    org.eclipse.jgit.internal.storage.file.FileSnapshot: "info"
+    com.amazonaws.auth.AWS4Signer: "warn"
+    com.amazonaws.retry.ClockSkewAdjuster: "warn"
+    com.amazonaws.request: "warn"
+    com.amazonaws.requestId: "warn"
+
+# Git metadata configuration - LOCAL SETUP
+metadata:
+  # Use shell git for local testing
+  type: "shell"
+  # Local path where the git index is located
+  path: "./index"
+  # Git branch to use 
+  target: "master"
+  # URL of your Git crate index repository
+  url: "http://localhost:8855/index"
+
+# Crate storage configuration
+crate:
+  # Using filesystem storage
+  store: "filesystem"
+  # Local path where crate files are stored
+  path: "./crates"
+  
+  # Alternative: S3 storage configuration (uncomment and configure if needed)
+  # store: "s3"
+  # access-key: !envsecret "S3_ACCESS_KEY"
+  # secret-key: !envsecret "S3_SECRET_KEY"
+  # endpoint: "s3.amazonaws.com"  # or your S3-compatible endpoint
+  # bucket: "your-crate-bucket"
+
+# Frontend configuration
+frontend:
+  enabled: true
+  # Set to true to disable authentication for public registries
+  public: true

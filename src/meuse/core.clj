@@ -3,6 +3,7 @@
             [mount.core :as mount]
             meuse.http
             [meuse.log :as log]
+            meuse.init-users
             [signal.handler :refer [with-handler]])
   (:gen-class))
 

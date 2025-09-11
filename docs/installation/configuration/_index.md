@@ -139,7 +139,24 @@ frontend:
 
   # A random string with 32 characters.
   secret: !secret "ozeifjrizjrjghtkzifrnbjfkzoejfjz"
-```
+  
+# Initial users to be created when Meuse starts
+# These users will only be created if they don't already exist
+init-users:
+  users:
+    - name: "admin"              # Username
+      password: "admin_password" # Will be encrypted with bcrypt
+      description: "Administrator user"  # User description
+      role: "admin"              # Role: admin, tech, or read-only
+      active: true                # Whether the user is active, defaults to true
+    - name: "tech_user"
+      password: "tech_password"
+      description: "Tech user with publish rights"
+      role: "tech"
+    - name: "reader"
+      password: "reader_password"
+      description: "Read-only user"
+      role: "read-only"
 
 ## Database migrations
 
@@ -182,7 +199,15 @@ You can find how to create a token in the `API` documentation.
 
 ## Root user configuration
 
-In order to use Meuse, you need to create a first `admin` user. The only way to create this user currently is by inserting it directly into the database ¯\_(ツ)_/¯
+In order to use Meuse, you need to create a first `admin` user. This can be done in two ways:
+
+### Method 1: Using the init-users configuration
+
+The easiest way to create an admin user is to add it to the `init-users` section of your configuration file, as shown in the example above. Meuse will automatically create any users defined there when it starts up, if they don't already exist.
+
+### Method 2: Direct database insertion
+
+Alternatively, you can insert a user directly into the database as follows:
 
 Passwords are encrypted using bcrypt. You can generate a password by running the Meuse jar with the `password` subcommand, for example:
 
@@ -197,3 +222,4 @@ Then, insert a new `admin` user using this password in the database:
 INSERT INTO users(id, name, password, description, active, role_id)
 VALUES ('f3e6888e-97f9-11e9-ae4e-ef296f05cd17', 'root_user', '$2a$11$PN29HCYWPjcHbC4cyLSrReMb2UKNGAAWMlaxEeMNNCVGz3pk/rNee', 'my root user', true, '867428a0-69ba-11e9-a674-9f6c32022150');
 ```
+

@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:14.4
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: meuse
+      POSTGRES_USER: meuse
+      POSTGRES_PASSWORD: meuse
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+volumes:
+  pg_data:
