@@ -31,9 +31,9 @@ logging:
 metadata:
   # Using JGit instead of shell for better integration
   type: "jgit"
-  path: !envvar GIT_INDEX_PATH
+  path: !envvar GIT_INDEX_PATH   # Meuse requires a non-bare repo
   target: !envvar GIT_TARGET
-  url: !envvar GIT_INDEX_URL
+  url: !envvar GIT_INDEX_URL   # .git suffix not supported; see docs
   username: !envvar GIT_USER
   password: !envvar GIT_PASSWORD
 

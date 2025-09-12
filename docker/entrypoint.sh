@@ -5,7 +5,7 @@ set -e
 mkdir -p /app/git-data /app/crates /app/config
 
 # Initialize Git repository if it doesn't exist
-if [ ! -d "/app/git-data/myindex.git" ]; then
+if [ ! -d "/app/git-data/myindex" ]; then
     echo "[INIT] Initializing Git repository for the first time..."
     
     # Install git if not present
@@ -20,16 +20,16 @@ if [ ! -d "/app/git-data/myindex.git" ]; then
     export GIT_COMMITTER_NAME="${GIT_COMMITTER_NAME:-Meuse Admin}"
     export GIT_COMMITTER_EMAIL="${GIT_COMMITTER_EMAIL:-admin@${DOMAIN:-localhost}}"
     
-    # Create bare repository
-    mkdir -p /app/git-data/myindex.git
-    cd /app/git-data/myindex.git
-    git init --bare
+    # Create non-bare repository (updated: bare repositories break JGit operations, see https://github.com/eclipse/jgit/issues/ for details)
+    mkdir -p /app/git-data/myindex
+    cd /app/git-data/myindex
+    git init
     
     # Create config.json with environment variables
     CARGO_API_URL="${CARGO_API_URL:-http://localhost:8855/api/v1/crates}"
     REGISTRY_URL="${REGISTRY_URL:-http://localhost:8855}"
     
-    cat > /tmp/config.json <<EOF
+    cat > config.json <<EOF
 {
   "dl": "${CARGO_API_URL}",
   "api": "${REGISTRY_URL}",
@@ -38,15 +38,11 @@ if [ ! -d "/app/git-data/myindex.git" ]; then
 EOF
     
     # Add config.json to the repository
-    BLOB_HASH=$(git hash-object -w /tmp/config.json)
-    # Use POSIX-compliant printf instead of echo -e for mktree
-    TREE_HASH=$(printf "100644 blob ${BLOB_HASH}\tconfig.json\n" | git mktree)
-    COMMIT_HASH=$(git commit-tree "${TREE_HASH}" -m "Initialize registry with config.json")
-    git update-ref refs/heads/master "${COMMIT_HASH}"
+    git add config.json
+    git commit -m "Initialize registry with config.json"
+    # (non-bare: HEAD/master refs work as normal)
+
     git update-server-info
-    
-    # Ensure config.json file exists in bare repo directory for Meuse to use
-    cp /tmp/config.json /app/git-data/myindex.git/config.json
     
     # Set correct permissions
     chown -R meuse:meuse /app/git-data

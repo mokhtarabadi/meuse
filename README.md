@@ -55,3 +55,29 @@ For detailed instructions, see:
 ## Plan
 
 Take a look at https://meuse.mcorbin.fr/roadmap/.
+
+## Changelog
+
+- 2025-09-12: Switched to non-bare git repository for crate index and metadata. Meuse now requires a non-bare repo
+  because JGit and rollback operations fail with bare repos. Docker and entrypoint.sh are updated, and the build-jgit
+  code now checks for misconfigurations.
+
+## Troubleshooting
+
+If you encounter an error like:
+
+```
+org.eclipse.jgit.errors.NoWorkTreeException: Bare Repository has neither a working tree, nor an index
+```
+
+You must ensure your crate index repo is NOT bare. Re-initialize using:
+
+```bash
+git init
+```
+
+Do NOT use `git init --bare`.
+
+See [docs/installation/docker-deployment](./docs/installation/docker-deployment/_index.md)
+and [docs/installation/git-http-backend](./docs/installation/git-http-backend/_index.md) for updated deployment
+instructions.

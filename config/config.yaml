@@ -34,12 +34,12 @@ logging:
 metadata:
   # Use shell git for local testing
   type: "shell"
-  # Local path where the git index is located
-  path: "./index"
+  # Local path where the git index is located (must be non-bare for Meuse)
+  path: "./myindex"
   # Git branch to use 
   target: "master"
   # URL of your Git crate index repository
-  url: "http://localhost:8855/index"
+  url: "http://localhost:8855/myindex"
 
 # Crate storage configuration
 crate:
@@ -54,6 +54,9 @@ crate:
   # secret-key: !envsecret "S3_SECRET_KEY"
   # endpoint: "s3.amazonaws.com"  # or your S3-compatible endpoint
   # bucket: "your-crate-bucket"
+
+# Warning: Meuse requires a non-bare Git repository with a working tree.
+# Future configuration changes should ensure this requirement is met to avoid reintroducing the bug.
 
 # Frontend configuration
 frontend:

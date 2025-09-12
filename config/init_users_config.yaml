@@ -29,9 +29,9 @@ logging:
 
 metadata:
   type: "shell"
-  path: "/home/mohammad/Develop/Projects/meuse/git-data/myindex.git"
+  path: "/home/mohammad/Develop/Projects/meuse/git-data/myindex"  # Meuse requires non-bare repos
   target: "master"
-  url: "http://localhost:8180/myindex.git"
+  url: "http://localhost:8180/myindex"
 
 crate:
   store: "filesystem"

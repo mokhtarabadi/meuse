@@ -56,7 +56,9 @@ services:
       GIT_PASSWORD: ${GIT_PASSWORD}
       GIT_INDEX_PATH: ${GIT_INDEX_PATH}
       GIT_TARGET: ${GIT_TARGET}
-      GIT_INDEX_URL: http://git-server/myindex.git
+      # Warning: Do not use bare repositories (.git suffix) in GIT_INDEX_URL and GIT_INDEX_PATH.
+      # If you are encountering issues, ensure that your volumes or mount source references point to 'myindex', not 'myindex.git'.
+      GIT_INDEX_URL: http://git-server/myindex
       # Database configuration
       POSTGRES_DB: ${POSTGRES_DB:-meuse}
       POSTGRES_USER: ${POSTGRES_USER:-meuse}

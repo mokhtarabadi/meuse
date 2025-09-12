@@ -106,13 +106,17 @@
 
 (defn build-jgit
   [config]
-  (map->JGitFileRepository
-   {:credentials (UsernamePasswordCredentialsProvider.
-                  (:username config)
-                  (:password config))
-    :git (Git/open (io/file (:path config)))
-    :lock (java.lang.Object.)
-    :target (:target config)}))
+      (let [repo-file (io/file (:path config))
+            git-obj (Git/open repo-file)
+            _ (when (.isBare (.getRepository git-obj))
+                    (throw (ex/ex-fault (str "Repository at " (:path config) " is bare. JGitFileRepository requires a working tree. Please reinitialize this repo as non-bare (remove --bare from 'git init'). See docs for details."))))]
+           (map->JGitFileRepository
+             {:credentials (UsernamePasswordCredentialsProvider.
+                             (:username config)
+                             (:password config))
+              :git         git-obj
+              :lock        (java.lang.Object.)
+              :target      (:target config)})))
 
 (defn build-local-git
   [config]

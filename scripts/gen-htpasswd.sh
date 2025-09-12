@@ -92,7 +92,7 @@ if [[ $? -eq 0 ]]; then
   echo -e "${YELLOW}Next steps:${NC}"
   echo -e "1. Start the services: ${BLUE}docker compose up -d${NC}"
   echo -e "2. The git-server will use this htpasswd for authentication"
-  echo -e "3. Clone your registry: ${BLUE}git clone http://${GIT_USER}@localhost:8180/myindex.git${NC}"
+  echo -e "3. Clone your registry: ${BLUE}git clone http://${GIT_USER}@localhost:8180/myindex${NC}" # Meuse now requires non-bare repositories for crate registry and publishing.
 else
   error "Failed to generate htpasswd file"
 fi

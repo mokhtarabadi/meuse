@@ -85,10 +85,10 @@ docker run --rm \
 The Meuse container handles this automatically, but for manual setup:
 
 ```bash
-# Create bare repository
+# Create non-bare repository
 mkdir -p git-data/myindex.git
 cd git-data/myindex.git
-git init --bare
+git init
 
 # Create config.json
 cat > config.json << EOF
@@ -137,14 +137,14 @@ Update your Meuse configuration (e.g., `config/init_users_config.yaml`) to use t
 metadata:
   type: "shell"
   path: "/absolute/path/to/meuse/git-data/myindex.git"
-  target: "master"
+  target: "origin/master"
   url: "http://localhost:8180/myindex.git"
 ```
 
 Note the important settings:
 
 - `path`: Absolute path to the local git repository
-- `target`: For a non-bare repo, use "origin/master". For a bare repo use "master"
+- `target`: For a non-bare repo, use "origin/master". (Bare repos are NOT supported with Meuse)
 - `url`: The HTTP URL of your git server (what Cargo clients will use)
 
 ### Starting Both Services
@@ -286,6 +286,12 @@ my-crate = { version = "0.1.0", registry = "meuse" }
   docker compose exec git-server ls -la /srv/git/myindex.git
   ```
 
+#### Bare Repository Error
+
+- **Symptom**: `org.eclipse.jgit.errors.NoWorkTreeException: Bare Repository has neither a working tree, nor an index`
+- **Solution**: You have a bare repo. Fix it by re-initializing with `git init` (no '--bare'). All Meuse operational
+  features require a working tree.
+
 ### Debugging
 
 - **Check nginx logs**:
@@ -338,11 +344,11 @@ like:
 
 ### Multiple Repositories
 
-You can host multiple Git repositories by creating additional bare repos in the `git-data` directory:
+You can host multiple Git repositories by creating additional non-bare repos in the `git-data` directory:
 
 ```bash
 cd git-data
-git init --bare another-repo.git
+git init another-repo
 ```
 
 They will be automatically accessible via `http://localhost:8180/another-repo.git`.

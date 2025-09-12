@@ -6,7 +6,7 @@ Add to `~/.cargo/config.toml`:
 
 ```toml
 [registries.meuse]
-index = "http://localhost:8180/myindex.git"
+index = "http://localhost:8180/myindex"
 
 [net]
 git-fetch-with-cli = true  # Required for HTTP authentication
@@ -33,7 +33,9 @@ token = "your-token-here"
 ```bash
 # In your Rust project
 cargo publish --registry meuse
-```---
+```
+
+---
 title: Docker Deployment
 weight: 25
 disableToc: false
@@ -100,7 +102,7 @@ docker compose up -d
 
 On first run, the Meuse container will automatically:
 
-- Initialize a bare Git repository at `/app/git-data/myindex.git`
+- Initialize a non-bare Git repository at `/app/git-data/myindex`
 - Create the required `config.json` with your registry URLs
 - Set up proper permissions
 - Create the crates storage directory
@@ -142,9 +144,9 @@ If you prefer manual initialization without the automatic setup:
 
 The Meuse container uses an entrypoint script that:
 
-1. **Checks for existing setup**: On startup, it checks if `/app/git-data/myindex.git` exists
+1. **Checks for existing setup**: On startup, it checks if `/app/git-data/myindex` exists
 2. **Initializes if needed**: If not found, it automatically:
-    - Creates a bare Git repository
+    - Creates a non-bare Git repository
     - Generates `config.json` using environment variables
     - Commits the configuration to the repository
     - Sets proper permissions for the meuse user
@@ -242,6 +244,12 @@ docker compose logs meuse | grep INIT
    docker compose exec postgres psql -U meuse -d meuse -c "SELECT 1"
    ```
 
+### Bare Repository Error
+
+If you encounter errors like:
+`org.eclipse.jgit.errors.NoWorkTreeException: Bare Repository has neither a working tree, nor an index`
+This means the repo was created as bare. To fix, re-initialize without the '--bare' flag (use just `git init`) and
+ensure your deployment points 'myindex' rather than 'myindex.git'. See entrypoint.sh for details.
 
 ## Upgrading
 

@@ -81,7 +81,8 @@ mkdir -p git-repos/index-workspace crates
 
 # Set up Git repository
 cd git-repos/index-workspace
-git init
+git init  # Creates a non-bare repository; REQUIRED for Meuse crate publishing and rollback
+# WARNING: Do not use 'git init --bare' as it may cause issues with Meuse operational stability.
 
 # Create config.json
 cat > config.json << EOF
