@@ -60,22 +60,10 @@ echo -e "  Git User: ${GREEN}${GIT_USER}${NC}"
 echo -e "  Git Password: ${GREEN}[hidden]${NC}"
 echo ""
 
-# Check if htpasswd already exists
-if [[ -f "git-data/htpasswd" ]]; then
-  warn "htpasswd file already exists at git-data/htpasswd"
-  read -p "Do you want to overwrite it? [y/N]: " -n 1 -r
-  echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    info "Keeping existing htpasswd file"
-    exit 0
-  fi
-fi
+# Generate htpasswd on the host in ./git-data/htpasswd
+info "Generating htpasswd file for user: ${GIT_USER} to ./git-data/htpasswd"
 
-# Create git-data directory if it doesn't exist
 mkdir -p git-data
-
-# Generate htpasswd using httpd container
-info "Generating htpasswd file for user: ${GIT_USER}"
 
 docker run --rm \
   -v "$(pwd)/git-data:/git-data" \
@@ -92,7 +80,7 @@ if [[ $? -eq 0 ]]; then
   echo -e "${YELLOW}Next steps:${NC}"
   echo -e "1. Start the services: ${BLUE}docker compose up -d${NC}"
   echo -e "2. The git-server will use this htpasswd for authentication"
-  echo -e "3. Clone your registry: ${BLUE}git clone http://${GIT_USER}@localhost:8180/myindex${NC}" # Meuse now requires non-bare repositories for crate registry and publishing.
+  echo -e "3. Clone your registry: ${BLUE}git clone http://${GIT_USER}@localhost:8180/myindex${NC}"
 else
   error "Failed to generate htpasswd file"
 fi

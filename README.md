@@ -36,6 +36,50 @@ For detailed instructions, see:
 - [Docker Deployment Guide](./docs/installation/docker-deployment/_index.md) - Full Docker setup
 - [Git HTTP Backend Guide](./docs/installation/git-http-backend/_index.md) - Git server details
 
+## Minimal Git Server Troubleshooting
+
+> **Important:** If you encounter errors such as 401, 403 Forbidden, or 'pread() ... Is a directory' in nginx logs, you
+> must:
+>
+> - Generate the htpasswd file as a host file: `./git-data/htpasswd` using the provided script (
+    `./scripts/gen-htpasswd.sh`)
+> - **Bind mount** the file in docker-compose (`./git-data/htpasswd:/etc/nginx/.htpasswd:ro`)
+> - Never use a Docker volume for `/etc/nginx/.htpasswd` (it will be treated as a directory by nginx and fail).
+> - Use a minimal `docker/git/default.conf` as:
+    >
+    >   ```nginx
+>   server {
+>     listen 80;
+>     server_name _;
+>     root /srv/git;
+>     auth_basic "Restricted Git";
+>     auth_basic_user_file /etc/nginx/.htpasswd;
+>     location /myindex {
+>       include fastcgi_params;
+>       fastcgi_param SCRIPT_FILENAME /usr/lib/git-core/git-http-backend;
+>       fastcgi_param SCRIPT_NAME /usr/lib/git-core/git-http-backend;
+>       fastcgi_param GIT_PROJECT_ROOT /srv/git;
+>       fastcgi_param GIT_HTTP_EXPORT_ALL "";
+>       fastcgi_param PATH_INFO $uri;
+>       fastcgi_param QUERY_STRING $args;
+>       fastcgi_pass unix:/var/run/fcgiwrap.socket;
+>       fastcgi_read_timeout 300;
+>     }
+>     location / {
+>       try_files $uri $uri/ =404;
+>     }
+>   }
+>   ```
+>
+> - To test auth, run:
+    >
+    >   ```sh
+>   curl -u gituser:yourpw http://localhost:8180/myindex/info/refs?service=git-upload-pack
+>   ```
+    >   Should display Git protocol refs, not HTTP 403/500.
+>
+> - A successful `git clone http://gituser:yourpw@localhost:8180/myindex` proves full end-to-end registry functionality.
+
 ## Features
 
 - [x] Complete implementation of the alternative registries RFC (including search).
@@ -81,3 +125,28 @@ Do NOT use `git init --bare`.
 See [docs/installation/docker-deployment](./docs/installation/docker-deployment/_index.md)
 and [docs/installation/git-http-backend](./docs/installation/git-http-backend/_index.md) for updated deployment
 instructions.
+
+## Cleanup and Reset
+
+To restore this project to a clean, reproducible state for the next developer or CI/build:
+
+1. Bring down all containers and clear all volumes and networks:
+   ```sh
+   docker compose down -v
+   ```
+2. Delete any demo/test crates or ad-hoc workspace directories:
+   ```sh
+   rm -rf /path/to/test-crates /path/to/consume-demo /path/to/surfshield-cli /path/to/surfshield-utils
+   rm -rf git-data clone-test-repo
+   ```
+3. Confirm a clean workspace:
+   ```sh
+   git status
+   ```
+   Only tracked files and intentional changes should remain.
+4. (Optional) Prune local Docker images:
+   ```sh
+   docker system prune -a
+   ```
+
+See the docs for restoring/rebuilding the registry from scratch and onboarding new contributors.
