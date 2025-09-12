@@ -12,7 +12,7 @@ FROM eclipse-temurin:17-focal
 LABEL org.opencontainers.image.title="Meuse"
 LABEL org.opencontainers.image.description="A free crate registry for the Rust programming language"
 LABEL org.opencontainers.image.source="https://github.com/mcorbin/meuse"
-LABEL org.opencontainers.image.version="1.3.0"
+LABEL org.opencontainers.image.version="1.4.0"
 LABEL org.opencontainers.image.licenses="EPL-2.0"
 
 # Create meuse user with explicit UID/GID 1000:1000
