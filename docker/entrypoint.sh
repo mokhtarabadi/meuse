@@ -45,6 +45,9 @@ EOF
     git update-ref refs/heads/master "${COMMIT_HASH}"
     git update-server-info
     
+    # Ensure config.json file exists in bare repo directory for Meuse to use
+    cp /tmp/config.json /app/git-data/myindex.git/config.json
+    
     # Set correct permissions
     chown -R meuse:meuse /app/git-data
 
