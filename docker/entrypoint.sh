@@ -25,6 +25,12 @@ if [ ! -d "/app/git-data/myindex" ]; then
     cd /app/git-data/myindex
     git init
     
+    # Add remote origin for JGit compatibility
+    REMOTE_URL="${GIT_INDEX_URL:-http://localhost:8180/myindex}"
+    if ! git remote | grep -q '^origin$'; then
+      git remote add origin "$REMOTE_URL"
+    fi
+    
     # Create config.json with environment variables
     CARGO_API_URL="${CARGO_API_URL:-http://localhost:8855/api/v1/crates}"
     REGISTRY_URL="${REGISTRY_URL:-http://localhost:8855}"

@@ -37,7 +37,7 @@ metadata:
   # Local path where the git index is located (must be non-bare for Meuse)
   path: "./myindex"
   # Git branch to use 
-  target: "master"
+  target: "origin/master"
   # URL of your Git crate index repository
   url: "http://localhost:8855/myindex"
 

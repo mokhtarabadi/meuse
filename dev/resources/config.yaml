@@ -24,7 +24,7 @@ logging:
 metadata:
   type: "shell"
   path: "./index"
-  target: "master"
+  target: "origin/master"
   url: "http://localhost:8855/index"
 crate:
   store: "filesystem"

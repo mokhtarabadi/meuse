@@ -30,7 +30,7 @@ logging:
 metadata:
   type: "shell"
   path: "/home/mohammad/Develop/Projects/meuse/git-data/myindex"  # Meuse requires non-bare repos
-  target: "master"
+  target: "origin/master"
   url: "http://localhost:8180/myindex"
 
 crate:
